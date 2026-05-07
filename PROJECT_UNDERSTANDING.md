@@ -32,8 +32,7 @@ Agent Mail CLI competes on **low ceremony and runtime discoverability**, not cat
 | Persistence | SQLite |
 | Default DB path (today) | `mail.db` next to the script |
 | Default DB path (spec 002 will revisit) | TBD — likely `~/.agent-mail/mail.db` for the packaged binary |
-| Override env var | `AGENT_MAIL_DB` |
-| Per-invocation override | `--db <path>` |
+| Override env var | `AGENT_MAIL_DB` (the only override path; one-shot use as `AGENT_MAIL_DB=path mail.py …`) |
 
 ## Target Users
 
@@ -113,8 +112,9 @@ The active behavioral scope is described in [`specs/001-agent-mail-cli.md`](spec
 - Self-describing `describe`
 - `send`, `read`, `ack`, `status`, `cleanup`
 - Local SQLite mailbox
-- `AGENT_MAIL_DB` override and top-level `--db` flag
-- `--human` output mode
+- `AGENT_MAIL_DB` env var override
+- `--body-file` for shell-escape-safe message bodies
+- `--fields` projection on `read` and `status`
 
 **Excluded (not in v1):**
 

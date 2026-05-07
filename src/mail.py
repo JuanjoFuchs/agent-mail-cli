@@ -1,21 +1,24 @@
-"""Agent mailbox — agent-to-agent messaging for local Claude Code agents.
+"""Agent mailbox — agent-to-agent messaging for local coding agents.
 
-SQLite-backed, zero external dependencies. Ephemeral messages with TTL.
+SQLite-backed, zero external dependencies. Ephemeral messages with a fixed 24h TTL.
 
 Usage:
-    python scripts/mail.py describe                                              Print CLI schema
-    python scripts/mail.py send --from second-brain:main --to claudefana:deploy --subject "fix X"
-    python scripts/mail.py send --from second-brain:main --to "*" --subject "status check"
-    python scripts/mail.py read claudefana:deploy                                Read unread inbox
-    python scripts/mail.py read claudefana:deploy --all --limit 50               Read all messages
-    python scripts/mail.py ack claudefana:deploy <message_id>                    Acknowledge a message
-    python scripts/mail.py status                                                Show all agents + counts
-    python scripts/mail.py cleanup --dry-run                                     Preview expired purge
+    python mail.py describe                                                Print CLI schema
+    python mail.py describe send                                           Schema for one command
+    python mail.py send --from second-brain:main --to claudefana:deploy --subject "fix X"
+    python mail.py send --from a:b --to c:d --subject "X" --body-file body.md
+    python mail.py send --from second-brain:main --to "*" --subject "status check"
+    python mail.py read claudefana:deploy                                  Read unread inbox
+    python mail.py read claudefana:deploy --all --limit 50                 Read all messages
+    python mail.py read claudefana:deploy --fields id,sender,subject       Project specific fields
+    python mail.py ack claudefana:deploy <uuid>                            Acknowledge a message
+    python mail.py status                                                  Show all agents + counts
+    python mail.py cleanup --dry-run                                       Preview expired purge
 
-All commands output JSON by default. Use --human for readable output.
+All commands output JSON on stdout. Errors are JSON on stderr with non-zero exit.
 Agent identity format: project:name (e.g. claudefana:deploy, second-brain:main).
 No registration needed — just send and read. Recipients don't need to exist yet.
-DB location: ./mail.db next to this script (override with AGENT_MAIL_DB env var).
+DB location: mail.db next to this script (override with AGENT_MAIL_DB env var).
 """
 
 import argparse
@@ -29,13 +32,14 @@ import uuid
 from pathlib import Path
 
 DEFAULT_DB_PATH = Path(__file__).resolve().with_name("mail.db")
+TTL_HOURS = 24
 
 # --- Schema (Pattern 2: Schema Introspection Replaces Documentation) ---
 
 SCHEMA = {
     "name": "mail",
-    "description": "Agent-to-agent mailbox for local Claude Code agents. SQLite-backed, zero external deps.",
-    "usage": "python scripts/mail.py <command> [args] [--human]",
+    "description": "Agent-to-agent mailbox for local coding agents. SQLite-backed, zero external deps.",
+    "usage": "python mail.py <command> [args]",
     "storage": f"{DEFAULT_DB_PATH} (override with AGENT_MAIL_DB env var)",
     "agent_identity": {
         "format": "project:name",
@@ -49,14 +53,15 @@ SCHEMA = {
         "rule": "If it should outlive the current task, it's a file, not a message. Messages reference files via --refs but don't manage them.",
     },
     "invariants": [
-        "All output is JSON by default — pipe through jq or consume directly",
-        "All errors are JSON on stderr with 'error' key",
-        "Messages are ephemeral — default 24h TTL, auto-cleanup on read/status",
+        "All output is JSON on stdout, pretty-printed with two-space indentation",
+        "All errors are JSON on stderr with 'error' key and non-zero exit code",
+        "Messages are ephemeral — fixed 24h TTL, auto-cleanup on send/read/status",
         "Agent identity: project:name (e.g. claudefana:deploy, second-brain:main)",
         "Broadcast: use --to '*' — all agents see it",
         "File references in --refs are paths relative to sender's project root",
         "No registration needed — recipients don't need to exist before sending",
         "DB auto-creates on first use — no setup step required",
+        "Long bodies with code/markdown: use --body-file to avoid shell escaping",
     ],
     "commands": {
         "describe": {
@@ -76,20 +81,21 @@ SCHEMA = {
                 "--to": {"type": "str", "required": True,
                          "description": "Recipient identity (project:name), or '*' for broadcast"},
                 "--subject": {"type": "str", "required": True, "description": "Message subject line"},
-                "--body": {"type": "str", "required": False, "default": "",
-                           "description": "Message body text"},
+                "--body": {"type": "str", "required": False,
+                           "description": "Message body text. Mutually exclusive with --body-file."},
+                "--body-file": {"type": "str", "required": False,
+                                "description": "Read message body from a UTF-8 file. Use this for long bodies, code blocks, or text that breaks shell escaping. Mutually exclusive with --body."},
                 "--refs": {"type": "str", "required": False,
                            "description": "JSON array of file paths referenced by this message"},
                 "--reply-to": {"type": "str", "required": False,
-                               "description": "Message ID to reply to (creates thread)"},
-                "--ttl": {"type": "int", "default": 24,
-                          "description": "Time-to-live in hours (default: 24)"},
+                               "description": "Message ID (UUID) to reply to (creates thread)"},
             },
             "output_fields": ["id", "sender", "recipient", "subject", "type", "created", "ttl_hours"],
             "examples": [
                 'send --from second-brain:main --to claudefana:deploy --subject "Fix the deploy bug" --body "See logs." --refs \'["logs/deploy-error.txt"]\'',
+                'send --from second-brain:main --to claudefana:deploy --subject "Long write-up" --body-file /tmp/writeup.md',
                 'send --from second-brain:main --to "*" --subject "Status check" --body "Report your current status."',
-                'send --from claudefana:deploy --to second-brain:main --subject "Deploy fixed" --reply-to abc123',
+                'send --from claudefana:deploy --to second-brain:main --subject "Deploy fixed" --reply-to abc123-...',
             ],
         },
         "read": {
@@ -108,6 +114,8 @@ SCHEMA = {
                              "description": "Show full thread for this message ID"},
                 "--no-mark-read": {"type": "bool", "default": False,
                                    "description": "Don't mark returned messages as read"},
+                "--fields": {"type": "str", "required": False,
+                             "description": "Comma-separated subset of output_fields to include in each result. Saves agent context when only some fields are needed."},
             },
             "output_fields": ["id", "sender", "recipient", "subject", "body", "refs", "reply_to",
                                "type", "created", "ttl_hours", "read_at", "acked_at"],
@@ -115,7 +123,8 @@ SCHEMA = {
                 "read claudefana:deploy",
                 "read claudefana:deploy --all --limit 50",
                 "read claudefana:deploy --from second-brain:main",
-                "read second-brain:main --thread abc123",
+                "read second-brain:main --thread abc123-...",
+                "read claudefana:deploy --fields id,sender,subject",
             ],
         },
         "ack": {
@@ -125,10 +134,10 @@ SCHEMA = {
                 "agent": {"type": "str", "positional": True, "required": True,
                           "description": "Agent identity (project:name) acknowledging the message"},
                 "message_id": {"type": "str", "positional": True, "required": True,
-                               "description": "Message ID to acknowledge"},
+                               "description": "UUID4 message ID to acknowledge"},
             },
             "output_fields": ["message_id", "agent", "acked_at"],
-            "examples": ["ack claudefana:deploy abc123-def456"],
+            "examples": ["ack claudefana:deploy 9f1c2e34-5678-4abc-9def-0123456789ab"],
         },
         "status": {
             "description": "Show all known agents and their unread/unacked message counts. Derived from message traffic — no registration needed.",
@@ -138,9 +147,16 @@ SCHEMA = {
                             "description": "Show status for a specific agent identity only"},
                 "--project": {"type": "str", "required": False,
                               "description": "Filter agents by project prefix"},
+                "--fields": {"type": "str", "required": False,
+                             "description": "Comma-separated subset of output_fields to include in each result."},
             },
             "output_fields": ["agent", "unread", "unacked"],
-            "examples": ["status", "status --agent claudefana:deploy", "status --project claudefana"],
+            "examples": [
+                "status",
+                "status --agent claudefana:deploy",
+                "status --project claudefana",
+                "status --fields agent,unread",
+            ],
         },
         "cleanup": {
             "description": "Purge expired messages (TTL exceeded).",
@@ -161,6 +177,12 @@ SCHEMA = {
 # project:name — both parts: lowercase alphanumeric + hyphens, start with alphanumeric
 AGENT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*$")
 
+# RFC 4122 UUID4 format (case-insensitive)
+UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+
 
 def error(msg):
     """Print JSON error to stderr and exit."""
@@ -171,6 +193,13 @@ def error(msg):
 def validate_agent_id(value):
     if not AGENT_ID_RE.match(value):
         error(f"Invalid agent identity: {value!r}. Must be project:name format (e.g. claudefana:deploy).")
+    return value
+
+
+def validate_uuid(value):
+    """Reject hallucinated message ids early — must look like a UUID before we hit the DB."""
+    if not UUID_RE.match(value):
+        error(f"Invalid message id: {value!r}. Must be a UUID (8-4-4-4-12 hex).")
     return value
 
 
@@ -190,6 +219,41 @@ def validate_text(value):
     if any(ord(c) < 0x20 and c not in "\n\r\t" for c in value):
         error("Text contains invalid control characters.")
     return value
+
+
+def read_body_file(path):
+    """Read message body from file as UTF-8 text. Errors via error()."""
+    p = Path(path)
+    if not p.exists():
+        error(f"--body-file not found: {path}")
+    if not p.is_file():
+        error(f"--body-file is not a regular file: {path}")
+    try:
+        return p.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        error(f"--body-file is not valid UTF-8: {path}")
+    except OSError as e:
+        error(f"Cannot read --body-file {path}: {e}")
+
+
+def parse_fields(value, valid_fields):
+    """Parse a --fields comma list and validate against valid_fields. Returns None if no projection."""
+    if not value:
+        return None
+    fields = [f.strip() for f in value.split(",") if f.strip()]
+    if not fields:
+        return None
+    invalid = [f for f in fields if f not in valid_fields]
+    if invalid:
+        error(f"Unknown --fields: {invalid}. Valid for this command: {sorted(valid_fields)}")
+    return fields
+
+
+def project_fields(item, fields):
+    """Project a dict to a subset of keys, or pass through if fields is None."""
+    if not fields:
+        return item
+    return {f: item.get(f) for f in fields}
 
 
 # --- Database ---
@@ -279,79 +343,46 @@ def _discover_agents(conn):
 
 # --- Output ---
 
-def output(data, human=False):
-    if human:
-        if isinstance(data, list):
-            for item in data:
-                _print_human(item)
-        elif isinstance(data, dict):
-            _print_human(data)
-    else:
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-
-
-def _print_human(item):
-    for k, v in item.items():
-        if isinstance(v, (dict, list)):
-            v = json.dumps(v, ensure_ascii=False)
-        print(f"  {k}: {v}")
-    print()
-
-
-def _format_message_human(msg):
-    """Rich human-readable format for a single message."""
-    sender = msg["sender"]
-    recipient = msg["recipient"]
-    arrow = f"{sender}  ->  {'(broadcast)' if recipient == '*' else recipient}"
-    lines = [
-        f"  From: {arrow}",
-        f"  Subject: {msg['subject']}",
-    ]
-    if msg.get("body"):
-        lines.append(f"  Body: {msg['body']}")
-    if msg.get("refs"):
-        refs = json.loads(msg["refs"]) if isinstance(msg["refs"], str) else msg["refs"]
-        lines.append(f"  Refs: {', '.join(refs)}")
-    if msg.get("reply_to"):
-        lines.append(f"  Thread: reply to {msg['reply_to'][:12]}...")
-    status_parts = []
-    if msg.get("read_at"):
-        status_parts.append("read")
-    if msg.get("acked_at"):
-        status_parts.append("acked")
-    status = ", ".join(status_parts) if status_parts else "unread"
-    lines.append(f"  Status: {status}")
-    lines.append(f"  Time: {msg['created']}  (TTL: {msg['ttl_hours']}h)")
-    lines.append(f"  ID: {msg['id']}")
-    print("\n".join(lines))
-    print()
+def output(data):
+    print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
 # --- Commands ---
 
-def cmd_describe(args, human):
-    """Print schema or specific command schema."""
-    command = getattr(args, "command", None) if hasattr(args, "command") else None
-    if command:
-        cmd_schema = SCHEMA["commands"].get(command)
+def cmd_describe(desc_command):
+    """Print full schema or a single command's schema."""
+    if desc_command:
+        cmd_schema = SCHEMA["commands"].get(desc_command)
         if not cmd_schema:
-            error(f"Unknown command: {command!r}. Available: {', '.join(SCHEMA['commands'].keys())}")
-        print(json.dumps({command: cmd_schema}, indent=2))
+            error(f"Unknown command: {desc_command!r}. Available: {', '.join(SCHEMA['commands'].keys())}")
+        output({desc_command: cmd_schema})
     else:
-        print(json.dumps(SCHEMA, indent=2))
+        output(SCHEMA)
 
 
-def cmd_send(args, human):
+def cmd_send(args):
     """Send a message from one agent to another."""
     sender = validate_agent_id(getattr(args, "from"))
     recipient = getattr(args, "to")
     if recipient != "*":
         validate_agent_id(recipient)
     subject = validate_text(args.subject)
-    body = validate_text(args.body) if args.body else ""
+
+    # Body: --body or --body-file (mutually exclusive). --body-file solves shell-escaping
+    # failures on long bodies with code blocks, markdown, or special characters.
+    if args.body is not None and args.body_file is not None:
+        error("Cannot use both --body and --body-file. Choose one.")
+    if args.body_file is not None:
+        body = validate_text(read_body_file(args.body_file))
+    elif args.body is not None:
+        body = validate_text(args.body)
+    else:
+        body = ""
+
     refs = validate_refs(args.refs) if args.refs else None
     reply_to = args.reply_to
-    ttl = args.ttl
+    if reply_to is not None:
+        validate_uuid(reply_to)
 
     conn = get_db()
     _cleanup_expired(conn)
@@ -363,51 +394,41 @@ def cmd_send(args, human):
     conn.execute(
         """INSERT INTO messages (id, sender, recipient, subject, body, refs, reply_to, type, ttl_hours, created)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (msg_id, sender, recipient, subject, body, refs, reply_to, msg_type, ttl, now),
+        (msg_id, sender, recipient, subject, body, refs, reply_to, msg_type, TTL_HOURS, now),
     )
     conn.commit()
 
-    result = {
+    output({
         "id": msg_id,
         "sender": sender,
         "recipient": recipient,
         "subject": subject,
         "type": msg_type,
         "created": now,
-        "ttl_hours": ttl,
-    }
-
-    if human:
-        print(f"  Sent: {sender} -> {recipient}")
-        print(f"  Subject: {subject}")
-        print(f"  ID: {msg_id}")
-        print(f"  TTL: {ttl}h")
-    else:
-        output(result)
+        "ttl_hours": TTL_HOURS,
+    })
 
 
-def cmd_read(args, human):
+def cmd_read(args):
     """Read inbox for an agent."""
     agent = validate_agent_id(args.agent)
+
+    valid_fields = SCHEMA["commands"]["read"]["output_fields"]
+    fields = parse_fields(args.fields, valid_fields)
 
     conn = get_db()
     _cleanup_expired(conn)
 
     mark_read = not args.no_mark_read
 
-    # Thread mode: show full thread
+    # Thread mode: show full thread, never marks read.
     if args.thread:
+        validate_uuid(args.thread)
         messages = _get_thread(conn, args.thread)
-        results = [dict(row) for row in messages]
-        if human:
-            print(f"  Thread ({len(results)} messages):\n")
-            for msg in results:
-                _format_message_human(msg)
-        else:
-            output(results)
+        results = [project_fields(dict(row), fields) for row in messages]
+        output(results)
         return
 
-    # Build inbox query
     if args.all:
         query = """
             SELECT * FROM messages
@@ -431,6 +452,7 @@ def cmd_read(args, human):
         params = [agent, agent, agent]
 
     if getattr(args, "from"):
+        validate_agent_id(getattr(args, "from"))
         query += " AND sender = ?"
         params.append(getattr(args, "from"))
 
@@ -438,12 +460,12 @@ def cmd_read(args, human):
     params.append(args.limit)
 
     rows = conn.execute(query, params).fetchall()
-    results = [dict(row) for row in rows]
+    raw_results = [dict(row) for row in rows]
 
-    # Mark as read
-    if mark_read and results:
+    # Mark as read (must run before projection so we still have id + recipient available).
+    if mark_read and raw_results:
         now = _now_iso()
-        for msg in results:
+        for msg in raw_results:
             if msg["recipient"] == "*":
                 conn.execute(
                     """INSERT INTO broadcast_acks (message_id, agent, read_at)
@@ -456,15 +478,8 @@ def cmd_read(args, human):
                     conn.execute("UPDATE messages SET read_at = ? WHERE id = ?", (now, msg["id"]))
         conn.commit()
 
-    if human:
-        if not results:
-            print("  No unread messages." if not args.all else "  No messages.")
-        else:
-            print(f"  Inbox for {agent} ({len(results)} message{'s' if len(results) != 1 else ''}):\n")
-            for msg in results:
-                _format_message_human(msg)
-    else:
-        output(results)
+    results = [project_fields(msg, fields) for msg in raw_results]
+    output(results)
 
 
 def _get_thread(conn, message_id):
@@ -488,10 +503,10 @@ def _get_thread(conn, message_id):
     """, (root_id,)).fetchall()
 
 
-def cmd_ack(args, human):
+def cmd_ack(args):
     """Acknowledge a message."""
     agent = validate_agent_id(args.agent)
-    msg_id = args.message_id
+    msg_id = validate_uuid(args.message_id)
 
     conn = get_db()
     msg = conn.execute("SELECT * FROM messages WHERE id = ?", (msg_id,)).fetchone()
@@ -511,17 +526,14 @@ def cmd_ack(args, human):
         conn.execute("UPDATE messages SET acked_at = ? WHERE id = ?", (now, msg_id))
     conn.commit()
 
-    result = {"message_id": msg_id, "agent": agent, "acked_at": now}
-    if human:
-        print(f"  Acknowledged: {msg_id[:12]}...")
-        print(f"  Agent: {agent}")
-        print(f"  At: {now}")
-    else:
-        output(result)
+    output({"message_id": msg_id, "agent": agent, "acked_at": now})
 
 
-def cmd_status(args, human):
+def cmd_status(args):
     """Show all known agents and unread/unacked counts. Derived from message traffic."""
+    valid_fields = SCHEMA["commands"]["status"]["output_fields"]
+    fields = parse_fields(args.fields, valid_fields)
+
     conn = get_db()
     _cleanup_expired(conn)
 
@@ -535,7 +547,7 @@ def cmd_status(args, human):
         prefix = args.project + ":"
         agents = [a for a in agents if a.startswith(prefix)]
 
-    results = []
+    raw_results = []
     for agent in agents:
         # Unread direct
         unread_direct = conn.execute(
@@ -569,25 +581,17 @@ def cmd_status(args, human):
               )
         """, (agent, agent)).fetchone()["c"]
 
-        results.append({
+        raw_results.append({
             "agent": agent,
             "unread": unread_direct + unread_broadcast,
             "unacked": unacked_direct + unacked_broadcast,
         })
 
-    if human:
-        if not results:
-            print("  No agents found.")
-        else:
-            print("  Agent Mailbox Status\n")
-            for a in results:
-                print(f"  {a['agent']:<30} {a['unread']} unread  {a['unacked']} unacked")
-            print()
-    else:
-        output(results)
+    results = [project_fields(r, fields) for r in raw_results]
+    output(results)
 
 
-def cmd_cleanup(args, human):
+def cmd_cleanup(args):
     """Purge expired messages."""
     conn = get_db()
     now = datetime.datetime.now().astimezone()
@@ -601,27 +605,17 @@ def cmd_cleanup(args, human):
             expired.append(dict(row))
 
     if not expired:
-        result = {"deleted_count": 0}
-        if human:
-            print("  No expired messages.")
-        else:
-            output(result)
+        output({"deleted_count": 0})
         return
 
     if dry_run:
-        result = {
+        output({
             "dry_run": True,
             "would_delete": len(expired),
             "oldest": expired[0]["created"],
             "newest": expired[-1]["created"],
             "messages": [{"id": m["id"], "sender": m["sender"], "subject": m["subject"]} for m in expired],
-        }
-        if human:
-            print(f"  Would delete {len(expired)} expired messages:")
-            for m in expired:
-                print(f"    {m['id'][:12]}... from {m['sender']}: {m['subject']}")
-        else:
-            output(result)
+        })
         return
 
     expired_ids = [m["id"] for m in expired]
@@ -630,22 +624,17 @@ def cmd_cleanup(args, human):
     conn.execute(f"DELETE FROM messages WHERE id IN ({placeholders})", expired_ids)
     conn.commit()
 
-    result = {
+    output({
         "deleted_count": len(expired_ids),
         "oldest_deleted": expired[0]["created"],
         "newest_deleted": expired[-1]["created"],
-    }
-    if human:
-        print(f"  Deleted {len(expired_ids)} expired messages.")
-    else:
-        output(result)
+    })
 
 
 # --- CLI ---
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Agent mailbox for local Claude Code agents.")
-    parser.add_argument("--db", help=f"Override DB path (default: {DEFAULT_DB_PATH})")
+    parser = argparse.ArgumentParser(description="Agent mailbox for local coding agents.")
     sub = parser.add_subparsers(dest="command")
 
     # describe
@@ -657,10 +646,11 @@ def build_parser():
     p.add_argument("--from", required=True, dest="from", help="Sender (project:name)")
     p.add_argument("--to", required=True, help="Recipient (project:name) or '*' for broadcast")
     p.add_argument("--subject", required=True, help="Message subject")
-    p.add_argument("--body", default="", help="Message body")
+    p.add_argument("--body", default=None, help="Message body (mutually exclusive with --body-file)")
+    p.add_argument("--body-file", default=None, dest="body_file",
+                   help="Read body from UTF-8 file (mutually exclusive with --body)")
     p.add_argument("--refs", help="JSON array of file path references")
-    p.add_argument("--reply-to", help="Message ID to reply to")
-    p.add_argument("--ttl", type=int, default=24, help="TTL in hours (default: 24)")
+    p.add_argument("--reply-to", dest="reply_to", help="Message UUID to reply to")
 
     # read
     p = sub.add_parser("read", help="Read inbox")
@@ -668,56 +658,48 @@ def build_parser():
     p.add_argument("--all", action="store_true", help="Include read messages")
     p.add_argument("--from", dest="from", help="Filter by sender")
     p.add_argument("--limit", type=int, default=20, help="Max messages (default: 20)")
-    p.add_argument("--thread", help="Show thread for message ID")
-    p.add_argument("--no-mark-read", action="store_true", help="Don't mark as read")
+    p.add_argument("--thread", help="Show thread for message UUID")
+    p.add_argument("--no-mark-read", action="store_true", dest="no_mark_read", help="Don't mark as read")
+    p.add_argument("--fields", help="Comma-separated subset of output_fields")
 
     # ack
     p = sub.add_parser("ack", help="Acknowledge a message")
     p.add_argument("agent", help="Agent identity (project:name)")
-    p.add_argument("message_id", help="Message ID")
+    p.add_argument("message_id", help="Message UUID")
 
     # status
     p = sub.add_parser("status", help="Show agent status")
     p.add_argument("--agent", help="Specific agent identity")
     p.add_argument("--project", help="Filter by project prefix")
+    p.add_argument("--fields", help="Comma-separated subset of output_fields")
 
     # cleanup
     p = sub.add_parser("cleanup", help="Purge expired messages")
-    p.add_argument("--dry-run", action="store_true", help="Preview without deleting")
+    p.add_argument("--dry-run", action="store_true", dest="dry_run", help="Preview without deleting")
 
     return parser
 
 
 def main():
-    # Pre-extract --human before argparse (same pattern as now.py / databricks_cli.py)
-    human = "--human" in sys.argv
-    argv = [a for a in sys.argv[1:] if a != "--human"]
-
     parser = build_parser()
-    args = parser.parse_args(argv)
-
-    # Override DB path
-    if args.db:
-        os.environ["AGENT_MAIL_DB"] = args.db
+    args = parser.parse_args()
 
     try:
-        if args.command == "describe" or not args.command:
-            if not args.command:
-                cmd_describe(args, human)
-                return
-            class DescArgs:
-                command = getattr(args, "desc_command", None)
-            cmd_describe(DescArgs(), human)
+        if not args.command:
+            cmd_describe(None)
+            return
+        if args.command == "describe":
+            cmd_describe(getattr(args, "desc_command", None))
         elif args.command == "send":
-            cmd_send(args, human)
+            cmd_send(args)
         elif args.command == "read":
-            cmd_read(args, human)
+            cmd_read(args)
         elif args.command == "ack":
-            cmd_ack(args, human)
+            cmd_ack(args)
         elif args.command == "status":
-            cmd_status(args, human)
+            cmd_status(args)
         elif args.command == "cleanup":
-            cmd_cleanup(args, human)
+            cmd_cleanup(args)
         else:
             error(f"Unknown command: {args.command}. Run 'describe' for usage.")
     except SystemExit:

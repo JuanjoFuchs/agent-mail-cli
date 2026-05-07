@@ -31,7 +31,7 @@ Single Python script today. Spec is the contract; script is the implementation.
 - JSON on stdout by default; JSON errors on stderr with `error` key; non-zero exit on error.
 - `describe` is the canonical interface contract — every command, argument, and invariant must be discoverable from it alone.
 - Identity: `project:name`, lowercase alphanumeric plus hyphen, single colon, both halves non-empty.
-- Overrides: only `AGENT_MAIL_DB` env var and top-level `--db` flag.
+- Overrides: `AGENT_MAIL_DB` env var only. No top-level CLI flags in v1 — the audit removed `--db` and `--human`.
 - Spec rules: `D:/jfuchs/dev/second-brain/Spec Writing Rules for Agents.md`. No "Future Considerations", no "Success Criteria"; every requirement traces to an AC.
 - Commits: do not commit unless JJ explicitly asks.
 
