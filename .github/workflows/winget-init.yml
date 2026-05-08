@@ -44,32 +44,67 @@ jobs:
           $packageId = "JuanjoFuchs.agent-mail-cli"
           $version = "${{ inputs.version }}"
           $url = "${{ steps.release.outputs.installer_url }}"
+          $manifestVersion = "1.12.0"
+          $manifestDir = Join-Path "manifests" "j/JuanjoFuchs/agent-mail-cli/$version"
+          New-Item -ItemType Directory -Path $manifestDir -Force | Out-Null
 
-          .\wingetcreate.exe new $url `
-            --id $packageId `
-            --version $version `
-            --publisher "JuanjoFuchs" `
-            --name "Agent Mail CLI" `
-            --moniker "agent-mail" `
-            --license "MIT" `
-            --short-description "Self-describing local inbox for coding agents" `
-            --tags "agents,cli,mailbox" `
-            --commands "agent-mail" `
-            --out manifests
+          Invoke-WebRequest -Uri $url -OutFile agent-mail.exe
+          $sha256 = (Get-FileHash -Algorithm SHA256 agent-mail.exe).Hash
 
-          $installerManifest = Get-ChildItem -Path manifests -Filter "*.installer.yaml" -Recurse | Select-Object -First 1
-          if ($null -eq $installerManifest) {
-            Write-Error "Installer manifest was not generated"
+          @(
+            "PackageIdentifier: $packageId",
+            "PackageVersion: $version",
+            "DefaultLocale: en-US",
+            "ManifestType: version",
+            "ManifestVersion: $manifestVersion"
+          ) | Set-Content (Join-Path $manifestDir "$packageId.yaml")
+
+          @(
+            "PackageIdentifier: $packageId",
+            "PackageVersion: $version",
+            "PackageLocale: en-US",
+            "Publisher: JuanjoFuchs",
+            "PublisherUrl: https://github.com/JuanjoFuchs",
+            "PackageName: Agent Mail CLI",
+            "PackageUrl: https://github.com/JuanjoFuchs/agent-mail-cli",
+            "License: MIT",
+            "LicenseUrl: https://github.com/JuanjoFuchs/agent-mail-cli/blob/main/LICENSE",
+            "ShortDescription: Self-describing local inbox for coding agents",
+            "Description: Agent Mail CLI is a local SQLite-backed inbox for coding agents.",
+            "Moniker: agent-mail",
+            "Tags:",
+            "- agents",
+            "- cli",
+            "- mailbox",
+            "ManifestType: defaultLocale",
+            "ManifestVersion: $manifestVersion"
+          ) | Set-Content (Join-Path $manifestDir "$packageId.locale.en-US.yaml")
+
+          @(
+            "PackageIdentifier: $packageId",
+            "PackageVersion: $version",
+            "InstallerType: portable",
+            "Commands:",
+            "- agent-mail",
+            "UpgradeBehavior: uninstallPrevious",
+            "Installers:",
+            "- Architecture: x64",
+            "  InstallerUrl: $url",
+            "  InstallerSha256: $sha256",
+            "ManifestType: installer",
+            "ManifestVersion: $manifestVersion"
+          ) | Set-Content (Join-Path $manifestDir "$packageId.installer.yaml")
+
+          Get-ChildItem -Path $manifestDir -Filter "*.yaml" | ForEach-Object {
+            Write-Host "Generated $($_.FullName)"
+            Get-Content $_.FullName
+          }
+
+          if (-not (Select-String -Path (Join-Path $manifestDir "$packageId.installer.yaml") -Pattern "UpgradeBehavior: uninstallPrevious" -Quiet)) {
+            Write-Error "UpgradeBehavior validation failed"
             exit 1
           }
-          $text = Get-Content $installerManifest.FullName -Raw
-          if ($text -notmatch "UpgradeBehavior: uninstallPrevious") {
-            $text = $text -replace "(InstallerType: portable\r?\n)", "`$1UpgradeBehavior: uninstallPrevious`n"
-            Set-Content $installerManifest.FullName $text -NoNewline
-          }
-          if (-not (Select-String -Path $installerManifest.FullName -Pattern "UpgradeBehavior: uninstallPrevious" -Quiet)) {
-            Write-Error "UpgradeBehavior injection failed"
-            exit 1
-          }
+
+          .\wingetcreate.exe validate $manifestDir
 
           .\wingetcreate.exe submit manifests --token $env:WINGET_TOKEN
