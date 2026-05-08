@@ -105,6 +105,9 @@ jobs:
             exit 1
           }
 
-          .\wingetcreate.exe validate $manifestDir
+          .\wingetcreate.exe submit $manifestDir --token $env:WINGET_TOKEN
 
-          .\wingetcreate.exe submit manifests --token $env:WINGET_TOKEN
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "wingetcreate failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
