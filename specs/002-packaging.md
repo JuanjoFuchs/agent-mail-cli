@@ -52,7 +52,7 @@ The PyPI distribution name is `agent-mail-cli` because PyPI rejected `agent-mail
   |---|---|---|---|
   | Windows | x64 | `windows-latest` | `windows-x64.exe` |
   | Linux | x64 | `ubuntu-latest` | `linux-x64` |
-  | macOS | x64 | `macos-13` | `darwin-x64` |
+  | macOS | x64 | `macos-15-intel` | `darwin-x64` |
   | macOS | arm64 | `macos-latest` | `darwin-arm64` |
 
 - **TC6**: Default database path resolves to `~/.agent-mail/mail.db` via the user's home directory.
