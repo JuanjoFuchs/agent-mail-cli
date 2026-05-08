@@ -1,0 +1,75 @@
+name: Initial WinGet Submission
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to submit, without v prefix"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  submit-to-winget:
+    runs-on: windows-latest
+    steps:
+      - name: Resolve release asset
+        id: release
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          $tag = "v$version"
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag" -Headers @{
+            "Accept" = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $exe = $release.assets | Where-Object { $_.name -match "agent-mail-$version-windows-x64\.exe$" }
+          if ($null -eq $exe) {
+            Write-Error "Windows x64 executable not found for $tag"
+            exit 1
+          }
+          Write-Output "installer_url=$($exe.browser_download_url)" >> $env:GITHUB_OUTPUT
+
+      - name: Download WinGet Create
+        shell: pwsh
+        run: Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+
+      - name: Create WinGet manifest and submit PR
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          $packageId = "JuanjoFuchs.agent-mail-cli"
+          $version = "${{ inputs.version }}"
+          $url = "${{ steps.release.outputs.installer_url }}"
+
+          .\wingetcreate.exe new $url `
+            --id $packageId `
+            --version $version `
+            --publisher "JuanjoFuchs" `
+            --name "Agent Mail CLI" `
+            --moniker "agent-mail" `
+            --license "MIT" `
+            --short-description "Self-describing local inbox for coding agents" `
+            --tags "agents,cli,mailbox" `
+            --commands "agent-mail" `
+            --out manifests
+
+          $installerManifest = Get-ChildItem -Path manifests -Filter "*.installer.yaml" -Recurse | Select-Object -First 1
+          if ($null -eq $installerManifest) {
+            Write-Error "Installer manifest was not generated"
+            exit 1
+          }
+          $text = Get-Content $installerManifest.FullName -Raw
+          if ($text -notmatch "UpgradeBehavior: uninstallPrevious") {
+            $text = $text -replace "(InstallerType: portable\r?\n)", "`$1UpgradeBehavior: uninstallPrevious`n"
+            Set-Content $installerManifest.FullName $text -NoNewline
+          }
+          if (-not (Select-String -Path $installerManifest.FullName -Pattern "UpgradeBehavior: uninstallPrevious" -Quiet)) {
+            Write-Error "UpgradeBehavior injection failed"
+            exit 1
+          }
+
+          .\wingetcreate.exe submit manifests --token $env:WINGET_TOKEN

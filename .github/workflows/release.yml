@@ -1,0 +1,151 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-packages:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version matches tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$TAG_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Tag version ($TAG_VERSION) does not match package version (${{ steps.version.outputs.version }})"
+            exit 1
+          fi
+
+      - name: Build package
+        run: python -m build
+
+      - name: Validate package
+        run: twine check dist/*
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  build-executables:
+    needs: build-packages
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            ext: .exe
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            ext: ""
+          - os: macos-13
+            platform: darwin
+            arch: x64
+            ext: ""
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            ext: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Build executable
+        shell: bash
+        run: pyinstaller --onefile --name agent-mail --console src/agent_mail/__main__.py
+
+      - name: Rename executable
+        shell: bash
+        run: |
+          mv dist/agent-mail${{ matrix.ext }} dist/agent-mail-${{ needs.build-packages.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}
+
+      - name: Make executable
+        if: matrix.platform != 'windows'
+        run: chmod +x dist/agent-mail-*
+
+      - name: Smoke test executable
+        shell: bash
+        run: ./dist/agent-mail-${{ needs.build-packages.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }} describe
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/agent-mail-*
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-packages, build-executables]
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release-files
+          find artifacts -type f \( -name "*.whl" -o -name "*.tar.gz" -o -name "agent-mail-*" \) -exec cp {} release-files/ \;
+          ls -la release-files/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-files/*
+          generate_release_notes: true
+
+  trigger-winget:
+    runs-on: ubuntu-latest
+    needs: [build-packages, create-release]
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger WinGet publish workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'winget-publish.yml',
+              ref: 'main',
+              inputs: { release_tag: '${{ github.ref_name }}' }
+            })

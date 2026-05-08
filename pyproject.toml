@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-mail-cli"
+version = "0.1.0"
+description = "Self-describing local inbox for coding agents"
+authors = [{name = "JuanjoFuchs"}]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+keywords = ["agents", "mailbox", "coordination", "cli", "sqlite"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.0.0",
+    "pyinstaller>=6.0.0",
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+    "twine>=4.0.0",
+]
+
+[project.scripts]
+agent-mail = "agent_mail.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/JuanjoFuchs/agent-mail-cli"
+Repository = "https://github.com/JuanjoFuchs/agent-mail-cli.git"
+Issues = "https://github.com/JuanjoFuchs/agent-mail-cli/issues"
+Documentation = "https://github.com/JuanjoFuchs/agent-mail-cli#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+]
+ignore = [
+    "E501",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]

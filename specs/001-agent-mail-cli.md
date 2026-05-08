@@ -2,7 +2,7 @@
 id: "001"
 title: Agent Mail v1 — Behavioral Specification
 status: pending
-mirrors: src/mail.py
+mirrors: src/agent_mail/cli.py
 blocked_by: []
 blocks: ["002"]
 ---
@@ -11,17 +11,17 @@ blocks: ["002"]
 
 ## Overview
 
-This is the behavioral specification for `mail.py` (`src/mail.py`). It defines the v1 surface and behavior for Agent Mail: `send`, `read`, `ack`, `status`, `cleanup`, `describe` — JSON in, JSON out, no daemon, no registration, no MCP.
+This is the behavioral specification for Agent Mail (`src/agent_mail/cli.py`). It defines the v1 surface and behavior: `send`, `read`, `ack`, `status`, `cleanup`, `describe` — JSON in, JSON out, no daemon, no registration, no MCP.
 
 The spec was first written as a retrospective mirror of the original script (built and used inside JJ's second-brain vault before this repo). It was then refined through an audit guided by Justin Poehnelt's *["You Need to Rewrite Your CLI for AI Agents"](https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/)*. The trims and additions from that audit are recorded in **Key Decisions** and reflected in every other section.
 
-Distribution, packaging, and the eventual default DB path change belong in spec 002.
+Distribution, packaging, and the packaged default DB path change belong in spec 002.
 
-> **Completion rule:** This spec is complete when each acceptance criterion has been verified against `src/mail.py` via automated tests. The script is the source of truth — if reality and spec disagree, the spec is updated to match (or the script is patched after a spec change). Behavior changes are spec-first.
+> **Completion rule:** This spec is complete when each acceptance criterion has been verified against `src/agent_mail/cli.py` via automated tests. The package source is the source of truth — if reality and spec disagree, the spec is updated to match (or the package source is patched after a spec change). Behavior changes are spec-first.
 
 ## Goals
 
-- Capture every command, flag, validation rule, and output shape in `src/mail.py` so the contract is unambiguous.
+- Capture every command, flag, validation rule, and output shape in `src/agent_mail/cli.py` so the contract is unambiguous.
 - Establish parity acceptance criteria that future changes to the script's behavior must continue to satisfy unless the spec is updated first.
 - Provide the behavioral baseline that spec 002's distribution work will package and dogfood.
 
@@ -53,7 +53,7 @@ Distribution, packaging, and the eventual default DB path change belong in spec 
 - **TC5**: UUID validation runs on every UUID-shaped input — `ack <message_id>`, `send --reply-to`, and `read --thread`. Format: `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$` (case-insensitive).
 - **TC6**: `--body-file` reads UTF-8 text. Non-existent paths, paths that are not regular files, and non-UTF-8 contents produce a JSON error on stderr. `--body` and `--body-file` are mutually exclusive; passing both is an error.
 - **TC7**: `--fields` parses as a comma-separated list; each entry must appear in the command's documented `output_fields`. Unknown entries produce a JSON error on stderr listing the invalid names and the valid set.
-- **TC8**: Default database path is `mail.db` next to the script. `AGENT_MAIL_DB` overrides the default. No other override mechanism exists in v1.
+- **TC8**: Default database path is `~/.agent-mail/mail.db` in packaged/source-package execution. `AGENT_MAIL_DB` overrides the default. No other override mechanism exists in v1.
 - **TC9**: SQLite is the storage layer with `journal_mode = WAL`. Schema:
   - `messages(id PRIMARY KEY, sender, recipient, subject, body, refs, reply_to, type, ttl_hours, created, read_at, acked_at)` with indexes on `recipient`, `sender`, and `created`.
   - `broadcast_acks(message_id, agent, read_at, acked_at, PRIMARY KEY (message_id, agent))`.
@@ -103,7 +103,7 @@ All messages live exactly 24 hours. The original implementation accepted `--ttl 
 
 #### Single DB override path — no `--db` flag
 
-`AGENT_MAIL_DB` is the only override. The original `--db` top-level flag was a redundant alias that just set the env var in-process. Tests and ad-hoc invocations use `AGENT_MAIL_DB=path mail.py …` (one-shot env on the same line works in any shell).
+`AGENT_MAIL_DB` is the only override. The original `--db` top-level flag was a redundant alias that just set the env var in-process. Tests and ad-hoc invocations use `AGENT_MAIL_DB=path agent-mail …` (one-shot env on the same line works in any shell).
 
 #### JSON-only output — no `--human` mode
 
@@ -111,7 +111,7 @@ The tool is agent-first. The original `--human` flag rendered a parallel line-or
 
 #### `--body-file` solves shell escaping (added)
 
-Multi-line bodies with code blocks, markdown, or special characters reliably break shell quoting (bash, PowerShell, both). Agents converge on a `cat tempfile | mail.py send --body "$(cat tempfile)"` workaround anyway. `--body-file <path>` makes the temp-file path the supported path: write the file, pass the path, no escaping. Mutually exclusive with `--body`. Only `--body` gets this treatment because subjects and other inputs are line-length by design.
+Multi-line bodies with code blocks, markdown, or special characters reliably break shell quoting (bash, PowerShell, both). Agents converge on a `cat tempfile | agent-mail send --body "$(cat tempfile)"` workaround anyway. `--body-file <path>` makes the temp-file path the supported path: write the file, pass the path, no escaping. Mutually exclusive with `--body`. Only `--body` gets this treatment because subjects and other inputs are line-length by design.
 
 #### `--fields` for context window discipline (added)
 
@@ -123,7 +123,7 @@ Server-side projection on `read` and `status`. The agent specifies `--fields id,
 
 #### CLI-only in v1 — no MCP server
 
-MCP setup is the friction this tool removes. `python mail.py describe` (and later `npx -y agent-mail describe`) is the wedge: zero install, immediate JSON schema. Adding an MCP surface in v1 would put us in the same complexity tier as the systems we're differentiating against. Reconsider in a future spec if there is real demand from clients without easy shell-out.
+MCP setup is the friction this tool removes. `agent-mail describe` (and later `npx -y agent-mail describe`) is the wedge: immediate JSON schema without MCP setup. Adding an MCP surface in v1 would put us in the same complexity tier as the systems we're differentiating against. Reconsider in a future spec if there is real demand from clients without easy shell-out.
 
 #### No `--json` payload input
 
@@ -298,9 +298,9 @@ The agent set is derived from `senders ∪ recipients` (excluding `*`). Counts c
 
 ### Schema introspection
 
-- [ ] **AC1**: `mail.py describe` prints valid JSON on stdout containing `name`, `description`, `usage`, `storage`, `agent_identity`, `content_routing`, `invariants`, and `commands` keys.
-- [ ] **AC2**: `mail.py` with no arguments prints exactly the same JSON as `mail.py describe`.
-- [ ] **AC3**: `mail.py describe send` prints `{ "send": { … } }` with the schema for `send` only; the same pattern works for every other command.
+- [ ] **AC1**: `agent-mail describe` prints valid JSON on stdout containing `name`, `description`, `usage`, `storage`, `agent_identity`, `content_routing`, `invariants`, and `commands` keys.
+- [ ] **AC2**: `agent-mail` with no arguments prints exactly the same JSON as `agent-mail describe`.
+- [ ] **AC3**: `agent-mail describe send` prints `{ "send": { … } }` with the schema for `send` only; the same pattern works for every other command.
 - [ ] **AC4**: `describe` produces identical output regardless of whether the database file exists.
 
 ### `send`
@@ -352,7 +352,7 @@ The agent set is derived from `senders ∪ recipients` (excluding `*`). Counts c
 
 ### Storage and overrides
 
-- [ ] **AC37**: `AGENT_MAIL_DB=<path> mail.py …` directs all reads and writes to `<path>`; the default path is untouched.
+- [ ] **AC37**: `AGENT_MAIL_DB=<path> agent-mail …` directs all reads and writes to `<path>`; the default path is untouched.
 - [ ] **AC38**: First-use database initialization creates both tables and indexes and enables WAL mode.
 
 ### Validation
@@ -371,7 +371,7 @@ The agent set is derived from `senders ∪ recipients` (excluding `*`). Counts c
 
 ## Testing Approach
 
-- Run automated tests against `src/mail.py` using a temporary `AGENT_MAIL_DB` per test so default-path tests do not contaminate any real `mail.db` on the developer's machine.
+- Run automated tests against `src/agent_mail/cli.py` using a temporary `AGENT_MAIL_DB` per test so default-path tests do not contaminate any real mailbox on the developer's machine.
 - For each AC, record the exact command, environment, stdin, stdout JSON, stderr, and exit code as the parity baseline.
 - The test fixtures produced here are the parity suite that spec 002 will reuse to assert the packaged binary behaves identically to the source script.
 
@@ -390,7 +390,7 @@ The agent set is derived from `senders ∪ recipients` (excluding `*`). Counts c
 
 ## References
 
-- Source script: [`src/mail.py`](../src/mail.py) — the implementation this spec describes.
+- Source package: [`src/agent_mail/cli.py`](../src/agent_mail/cli.py) — the implementation this spec describes.
 - Audit guidance: Justin Poehnelt, *["You Need to Rewrite Your CLI for AI Agents"](https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/)*. The patterns informed every entry under Key Decisions § Audit.
 - Strategic command center: `💼 Agent Mailbox.md` in JJ's second-brain vault.
 - Project context: [PROJECT_UNDERSTANDING.md](../PROJECT_UNDERSTANDING.md).

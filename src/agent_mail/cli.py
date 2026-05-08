@@ -3,22 +3,22 @@
 SQLite-backed, zero external dependencies. Ephemeral messages with a fixed 24h TTL.
 
 Usage:
-    python mail.py describe                                                Print CLI schema
-    python mail.py describe send                                           Schema for one command
-    python mail.py send --from second-brain:main --to claudefana:deploy --subject "fix X"
-    python mail.py send --from a:b --to c:d --subject "X" --body-file body.md
-    python mail.py send --from second-brain:main --to "*" --subject "status check"
-    python mail.py read claudefana:deploy                                  Read unread inbox
-    python mail.py read claudefana:deploy --all --limit 50                 Read all messages
-    python mail.py read claudefana:deploy --fields id,sender,subject       Project specific fields
-    python mail.py ack claudefana:deploy <uuid>                            Acknowledge a message
-    python mail.py status                                                  Show all agents + counts
-    python mail.py cleanup --dry-run                                       Preview expired purge
+    agent-mail describe                                                Print CLI schema
+    agent-mail describe send                                           Schema for one command
+    agent-mail send --from second-brain:main --to claudefana:deploy --subject "fix X"
+    agent-mail send --from a:b --to c:d --subject "X" --body-file body.md
+    agent-mail send --from second-brain:main --to "*" --subject "status check"
+    agent-mail read claudefana:deploy                                  Read unread inbox
+    agent-mail read claudefana:deploy --all --limit 50                 Read all messages
+    agent-mail read claudefana:deploy --fields id,sender,subject       Project specific fields
+    agent-mail ack claudefana:deploy <uuid>                            Acknowledge a message
+    agent-mail status                                                  Show all agents + counts
+    agent-mail cleanup --dry-run                                       Preview expired purge
 
 All commands output JSON on stdout. Errors are JSON on stderr with non-zero exit.
 Agent identity format: project:name (e.g. claudefana:deploy, second-brain:main).
 No registration needed — just send and read. Recipients don't need to exist yet.
-DB location: mail.db next to this script (override with AGENT_MAIL_DB env var).
+DB location: ~/.agent-mail/mail.db (override with AGENT_MAIL_DB env var).
 """
 
 import argparse
@@ -31,15 +31,15 @@ import sys
 import uuid
 from pathlib import Path
 
-DEFAULT_DB_PATH = Path(__file__).resolve().with_name("mail.db")
+DEFAULT_DB_PATH = Path.home() / ".agent-mail" / "mail.db"
 TTL_HOURS = 24
 
 # --- Schema (Pattern 2: Schema Introspection Replaces Documentation) ---
 
 SCHEMA = {
-    "name": "mail",
+    "name": "agent-mail",
     "description": "Agent-to-agent mailbox for local coding agents. SQLite-backed, zero external deps.",
-    "usage": "python mail.py <command> [args]",
+    "usage": "agent-mail <command> [args]",
     "storage": f"{DEFAULT_DB_PATH} (override with AGENT_MAIL_DB env var)",
     "agent_identity": {
         "format": "project:name",
@@ -47,7 +47,7 @@ SCHEMA = {
         "rule": "project is the repo/project name, name is the session/agent name. Both lowercase alphanumeric + hyphens.",
     },
     "content_routing": {
-        "messages": "Ephemeral coordination — status updates, prompts, acks, handoffs. Auto-expires via TTL. This is what mail.py handles.",
+        "messages": "Ephemeral coordination — status updates, prompts, acks, handoffs. Auto-expires via TTL. This is what agent-mail handles.",
         "vault_files": "Personal persistent knowledge — strategy, cross-project context, learnings. Agents write files directly to the Obsidian vault. Survives beyond any single task.",
         "repo_files": "Shared persistent implementation — specs, docs, architecture decisions. Agents write files directly to project repos. Readable by other maintainers/users.",
         "rule": "If it should outlive the current task, it's a file, not a message. Messages reference files via --refs but don't manage them.",
@@ -363,7 +363,7 @@ def cmd_describe(desc_command):
 def cmd_send(args):
     """Send a message from one agent to another."""
     sender = validate_agent_id(getattr(args, "from"))
-    recipient = getattr(args, "to")
+    recipient = args.to
     if recipient != "*":
         validate_agent_id(recipient)
     subject = validate_text(args.subject)

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Agent Mail CLI is the open-source extraction of a working agent-to-agent inbox. `src/mail.py` (ported from a private internal tool) is the source of truth for behavior. Spec 001 is the behavioral mirror; spec 002 (pending) will cover packaging and distribution.
+Agent Mail CLI is the open-source extraction of a working agent-to-agent inbox. `src/agent_mail/cli.py` is the source of truth for behavior. Spec 001 is the behavioral contract; spec 002 covers Python packaging, GitHub Releases binaries, and WinGet.
 
 **CRITICAL: You MUST read the required files BEFORE taking action.** This is not optional.
 
@@ -9,11 +9,12 @@ Agent Mail CLI is the open-source extraction of a working agent-to-agent inbox. 
 | User asks about... | READ THIS FIRST | Then act |
 |---|---|---|
 | Understanding the project | @PROJECT_UNDERSTANDING.md | Explain or explore |
-| What the tool does today | @specs/001-agent-mail-cli.md, @src/mail.py | Answer using both |
-| Modifying behavior | @specs/001-agent-mail-cli.md | Update spec first, then patch `src/mail.py` |
+| What the tool does today | @specs/001-agent-mail-cli.md, @src/agent_mail/cli.py | Answer using both |
+| Modifying behavior | @specs/001-agent-mail-cli.md | Update spec first, then patch `src/agent_mail/cli.py` |
 | Adding or changing a flag | @specs/001-agent-mail-cli.md | Spec, then code, then ACs |
-| Auditing the surface (between specs 001 and 002) | @specs/001-agent-mail-cli.md, @src/mail.py | Propose trims; do not delete without explicit approval |
-| Packaging or distribution | @PROJECT_UNDERSTANDING.md | Wait — spec 002 is not yet written |
+| Auditing the surface (between specs 001 and 002) | @specs/001-agent-mail-cli.md, @src/agent_mail/cli.py | Propose trims; do not delete without explicit approval |
+| PyPI / GitHub Releases / WinGet packaging | @specs/002-packaging.md | Implement per spec 002 |
+| npm / `npx` distribution | @specs/003-npm-distribution.md | Implement per spec 003 (depends on spec 002) |
 | Updating agent instructions | this file | Edit this index, keep it ~50 lines |
 
 **Do not skip this step.** Read the linked file first, then act.
@@ -21,7 +22,7 @@ Agent Mail CLI is the open-source extraction of a working agent-to-agent inbox. 
 ## Architecture
 
 ```text
-src/mail.py  →  SQLite mailbox (default: mail.db next to script; override AGENT_MAIL_DB)
+src/agent_mail/cli.py  →  SQLite mailbox (default: ~/.agent-mail/mail.db; override AGENT_MAIL_DB)
 ```
 
 Single Python script today. Spec is the contract; script is the implementation.
@@ -45,8 +46,8 @@ Single Python script today. Spec is the contract; script is the implementation.
 
 ## Current State
 
-- `src/mail.py` is the working Python source, ported as-is from JJ's vault.
-- Spec 001 is a behavioral mirror of `src/mail.py`. Status: pending.
-- Spec 002 (pip + npx distribution) is the next planned spec. Not yet written.
-- An audit step is planned between specs 001 and 002 to trim surface fluff with JJ's discretion.
+- `src/agent_mail/cli.py` is the working Python source, packaged as `agent_mail`.
+- Spec 001 is the behavioral contract for `src/agent_mail/cli.py`. Status: pending.
+- Spec 001 audit complete (commit `be7a8c8`). `--ttl`, top-level `--db`, and `--human` removed; `--body-file`, `--fields`, and UUID validation added.
+- Spec 002 (PyPI + GitHub Releases + WinGet, modeled on ccburn) is being implemented. Spec 003 (npm + `npx`) remains pending. The repo has a remote (`origin → JuanjoFuchs/agent-mail-cli`); `main` is pushed.
 - Strategic command center: `💼 Agent Mailbox.md` in JJ's private vault.

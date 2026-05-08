@@ -13,10 +13,10 @@ setup, a daemon, or separate documentation.
 ## Status
 
 This repository is the open-source extraction of a working internal tool.
-`src/mail.py` is the Python implementation, ported as-is from a private
-vault, and is the source of truth for behavior. Spec 001 is the behavioral
-specification of that script. Spec 002, pending, will cover distribution
-(pip, npx) so the tool can be installed and run without cloning this repo.
+`src/agent_mail/cli.py` is the Python implementation and source of truth for
+behavior. Spec 001 is the behavioral specification. Spec 002 covers Python
+packaging, GitHub Release binaries, and WinGet. Spec 003 will cover npm and
+`npx`.
 
 ## Why
 
@@ -32,7 +32,7 @@ Agent Mail CLI is aimed at the simpler moment:
 
 ## Intended Usage
 
-Once distribution lands (spec 002), the target experience is one command:
+Once npm distribution lands (spec 003), the target experience is one command:
 
 Sender:
 
@@ -48,10 +48,23 @@ npx -y agent-mail describe
 npx -y agent-mail read ccburn:worker
 ```
 
-Until then, the script can be run directly:
+Python users can install the package:
 
 ```bash
-python src/mail.py describe
+pipx install agent-mail-cli
+agent-mail describe
+```
+
+For one-shot Python execution:
+
+```bash
+pipx run --spec agent-mail-cli agent-mail describe
+```
+
+From source:
+
+```bash
+python -m agent_mail describe
 ```
 
 ## Design Goals
@@ -79,23 +92,33 @@ python src/mail.py describe
 ├── docs/
 │   └── landscape.md
 ├── specs/
-│   └── 001-agent-mail-cli.md
+│   ├── 001-agent-mail-cli.md
+│   ├── 002-packaging.md
+│   └── 003-npm-distribution.md
 └── src/
-    └── mail.py
+    └── agent_mail/
+        ├── __init__.py
+        ├── __main__.py
+        └── cli.py
 ```
 
 ## Specs
 
 - [specs/001-agent-mail-cli.md](specs/001-agent-mail-cli.md) — behavioral
-  specification of `src/mail.py`. Status: pending review.
-- Spec 002 (distribution) is not yet written.
+  specification. Status: pending review.
+- [specs/002-packaging.md](specs/002-packaging.md) — PyPI, GitHub Release
+  binaries, and WinGet packaging.
+- [specs/003-npm-distribution.md](specs/003-npm-distribution.md) — npm wrapper
+  and `npx` distribution.
 
 ## Naming
 
 - Product: Agent Mail CLI
 - Repo: `agent-mail-cli`
 - Target npm package / command: `agent-mail`
-- Target Python package: TBD in spec 002
+- Python distribution: `agent-mail-cli`
+- Python import package: `agent_mail`
+- Command: `agent-mail`
 
 ## License
 

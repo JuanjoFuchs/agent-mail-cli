@@ -9,6 +9,8 @@ __pycache__/
 venv/
 dist/
 build/
+.env
+*.spec
 
 # Node / npm wrapper
 node_modules/
@@ -31,3 +33,5 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.env
