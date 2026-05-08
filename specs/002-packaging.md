@@ -100,7 +100,7 @@ These must be completed before the implementation can publish successfully. GitH
 - [x] Push `PYPI_API_TOKEN` to the repository secret for the first release only.
 - [ ] After the first release succeeds and `https://pypi.org/project/agent-mail-cli/` is live:
   - [ ] Confirm the PyPI publisher is active, not pending.
-  - [ ] Remove the token fallback from the release workflow.
+  - [x] Remove the token fallback from the release workflow.
   - [ ] Delete the `PYPI_API_TOKEN` repository secret.
 
 ### GitHub repository setup
@@ -109,13 +109,13 @@ These must be completed before the implementation can publish successfully. GitH
 
 ### WinGet token
 
-- [ ] Generate a GitHub Personal Access Token with `public_repo` scope.
+- [x] Generate a GitHub Personal Access Token with `public_repo` scope.
 - [x] Add it as the `WINGET_TOKEN` repository secret.
 
 ### Initial WinGet submission trigger
 
-- [ ] After the first GitHub Release includes a Windows EXE, trigger the one-time WinGet submission workflow for version `0.1.0`.
-- [ ] Verify the generated WinGet PR includes `UpgradeBehavior: uninstallPrevious` before Microsoft review.
+- [x] After the first successful GitHub Release includes a Windows EXE, trigger the one-time WinGet submission workflow for version `0.1.1`.
+- [x] Verify the generated WinGet PR includes `UpgradeBehavior: uninstallPrevious` before Microsoft review.
 
 ## Key Decisions
 
@@ -155,76 +155,101 @@ ccburn (`D:/jfuchs/dev/ccburn`) is the working precedent for PyPI, GitHub Releas
 
 ### Python packaging
 
-- [ ] Convert the CLI into an installable `agent_mail` package while preserving spec 001 behavior.
-- [ ] Expose `agent-mail` as the console command.
-- [ ] Support `python -m agent_mail`.
-- [ ] Change the packaged default database path to `~/.agent-mail/mail.db`.
-- [ ] Keep `AGENT_MAIL_DB` as the only database path override.
+- [x] Convert the CLI into an installable `agent_mail` package while preserving spec 001 behavior.
+- [x] Expose `agent-mail` as the console command.
+- [x] Support `python -m agent_mail`.
+- [x] Change the packaged default database path to `~/.agent-mail/mail.db`.
+- [x] Keep `AGENT_MAIL_DB` as the only database path override.
 
 ### Package metadata
 
-- [ ] Add package metadata for `agent-mail-cli`, Python 3.10+, MIT license, repository URL, and the `agent-mail` script entry.
-- [ ] Keep runtime dependencies empty unless implementation proves one is required.
-- [ ] Verify the built wheel filename uses PyPI's normalized `agent_mail_cli` prefix.
+- [x] Add package metadata for `agent-mail-cli`, Python 3.10+, MIT license, repository URL, and the `agent-mail` script entry.
+- [x] Keep runtime dependencies empty unless implementation proves one is required.
+- [x] Verify the built wheel filename uses PyPI's normalized `agent_mail_cli` prefix.
 
 ### Tests
 
-- [ ] Add automated coverage for every spec 001 acceptance criterion.
-- [ ] Add parity coverage that runs each command through the importable Python package and the PyInstaller binary, comparing stdout JSON, stderr JSON where applicable, and exit codes.
-- [ ] Isolate mailbox state per test with `AGENT_MAIL_DB`.
+- [x] Add automated coverage for every spec 001 acceptance criterion.
+- [x] Add parity coverage that runs each command through the importable Python package and the PyInstaller binary, comparing stdout JSON, stderr JSON where applicable, and exit codes.
+- [x] Isolate mailbox state per test with `AGENT_MAIL_DB`.
 
 ### CI/CD workflows
 
-- [ ] Add CI for lint, test, and build validation.
-- [ ] Add a release workflow that validates the tag against package metadata before building artifacts.
-- [ ] Publish wheel and sdist to PyPI from GitHub Actions.
-- [ ] Build and attach the four platform binaries listed in TC5 to the GitHub Release.
-- [ ] Add WinGet initial-submission and follow-up publish workflows using the `JuanjoFuchs.agent-mail-cli` identifier.
-- [ ] Ensure the WinGet submission manifest contains `UpgradeBehavior: uninstallPrevious`.
+- [x] Add CI for lint, test, and build validation.
+- [x] Add a release workflow that validates the tag against package metadata before building artifacts.
+- [x] Publish wheel and sdist to PyPI from GitHub Actions.
+- [x] Build and attach the four platform binaries listed in TC5 to the GitHub Release.
+- [x] Add WinGet initial-submission and follow-up publish workflows using the `JuanjoFuchs.agent-mail-cli` identifier.
+- [x] Ensure the WinGet submission manifest contains `UpgradeBehavior: uninstallPrevious`.
 
 ### Documentation sweep
 
-- [ ] Update `README.md` install instructions for `pipx install agent-mail-cli`, `pipx run --spec agent-mail-cli agent-mail describe`, direct GitHub Release binaries, and `winget install JuanjoFuchs.agent-mail-cli` after Microsoft approval.
-- [ ] Document the manual legacy database migration copy.
-- [ ] Update `AGENTS.md` and `PROJECT_UNDERSTANDING.md` if the source layout changes.
+- [x] Update `README.md` install instructions for `pipx install agent-mail-cli`, `pipx run --spec agent-mail-cli agent-mail describe`, direct GitHub Release binaries, and `winget install JuanjoFuchs.agent-mail-cli` after Microsoft approval.
+- [x] Document the manual legacy database migration copy.
+- [x] Update `AGENTS.md` and `PROJECT_UNDERSTANDING.md` if the source layout changes.
 
 ### First release
 
-- [ ] Set the first release version to `0.1.0`.
-- [ ] Push tag `v0.1.0` after JJ approves the implementation.
-- [ ] Verify GitHub Release artifacts, PyPI publication, and clean-machine `pipx` install.
+- [x] Set the first release version to `0.1.1` after `v0.1.0` published to PyPI but did not complete the GitHub Release.
+- [x] Push tag `v0.1.1` after JJ approves the implementation.
+- [x] Verify GitHub Release artifacts, PyPI publication, and clean-machine `pipx` install.
 - [ ] Complete the PyPI Trusted Publishing cleanup described in the prerequisites.
-- [ ] Trigger the initial WinGet submission and monitor the Microsoft PR until approval or rejection.
+- [x] Trigger the initial WinGet submission and verify the Microsoft PR opens.
+- [ ] Monitor the Microsoft PR until approval or rejection.
+
+## Verification Record
+
+- [x] Local `ruff check src/ tests/` passed.
+- [x] Local `pytest` passed against the importable package.
+- [x] Local parity tests passed against the PyInstaller binary.
+- [x] Local `python -m build` produced wheel and sdist artifacts.
+- [x] Local `twine check dist/*` passed.
+- [x] GitHub Release `v0.1.1` exists with wheel, sdist, and four platform binaries.
+- [x] PyPI `agent-mail-cli==0.1.1` is live.
+- [x] Clean Linux `pip install agent-mail-cli==0.1.1` verification passed.
+- [x] Clean Linux `pipx install agent-mail-cli==0.1.1` verification passed.
+- [x] Clean Linux `pipx run --spec agent-mail-cli==0.1.1 agent-mail describe` verification passed.
+- [x] Live `pipx run` smoke test covered `describe`, `send`, `read`, `status`, and `ack` with an isolated `AGENT_MAIL_DB`.
+- [x] Initial WinGet submission workflow succeeded for `0.1.1`.
+- [x] WinGet PR opened: `microsoft/winget-pkgs#371963`.
+- [x] Submitted WinGet installer manifest contains `UpgradeBehavior: uninstallPrevious`.
+- [x] Release workflow token fallback removed for OIDC-only PyPI publish attempt.
+- [ ] PyPI publisher active state confirmed in the PyPI web UI.
+- [x] Token-based PyPI fallback removed from release workflow.
+- [ ] Clean macOS `pip` or `pipx` install verified from PyPI.
+- [ ] Clean Windows `pip` or `pipx` install verified from PyPI.
+- [ ] `winget install JuanjoFuchs.agent-mail-cli` verified after Microsoft approval.
+- [ ] Subsequent WinGet upgrade behavior verified after a later release.
 
 ## Acceptance Criteria
 
 ### Build artifacts
 
-- [ ] **AC1**: `python -m build` produces `dist/agent_mail_cli-X.Y.Z-py3-none-any.whl` and `dist/agent_mail_cli-X.Y.Z.tar.gz` for the package metadata version.
-- [ ] **AC2**: `twine check dist/*` passes.
-- [ ] **AC3**: After a successful tag push, the GitHub Release for that tag has six artifacts: `.whl`, `.tar.gz`, and four platform binaries.
+- [x] **AC1**: `python -m build` produces `dist/agent_mail_cli-X.Y.Z-py3-none-any.whl` and `dist/agent_mail_cli-X.Y.Z.tar.gz` for the package metadata version.
+- [x] **AC2**: `twine check dist/*` passes.
+- [x] **AC3**: After a successful tag push, the GitHub Release for that tag has six artifacts: `.whl`, `.tar.gz`, and four platform binaries.
 
 ### Source parity
 
-- [ ] **AC4**: All spec 001 acceptance criteria (AC1-AC46) pass against the installed `agent-mail` command.
-- [ ] **AC5**: Parity tests run each spec 001 command through both the importable package and the PyInstaller binary, asserting identical stdout JSON, stderr JSON where applicable, and exit codes.
+- [x] **AC4**: All spec 001 acceptance criteria (AC1-AC46) pass against the installed `agent-mail` command.
+- [x] **AC5**: Parity tests run each spec 001 command through both the importable package and the PyInstaller binary, asserting identical stdout JSON, stderr JSON where applicable, and exit codes.
 
 ### PyPI
 
 - [ ] **AC6**: `pip install agent-mail-cli` on clean Python 3.10+ environments on Linux, macOS, and Windows makes `agent-mail` available on PATH.
 - [ ] **AC7**: `pipx install agent-mail-cli && agent-mail describe` returns the documented schema on Linux, macOS, and Windows.
-- [ ] **AC8**: `pipx run --spec agent-mail-cli agent-mail describe` works without persistent install.
+- [x] **AC8**: `pipx run --spec agent-mail-cli agent-mail describe` works without persistent install.
 
 ### WinGet
 
-- [ ] **AC9**: The initial WinGet workflow opens a PR to `microsoft/winget-pkgs`; the submitted installer manifest contains `UpgradeBehavior: uninstallPrevious`.
+- [x] **AC9**: The initial WinGet workflow opens a PR to `microsoft/winget-pkgs`; the submitted installer manifest contains `UpgradeBehavior: uninstallPrevious`.
 - [ ] **AC10**: After Microsoft approval, `winget install JuanjoFuchs.agent-mail-cli` installs the binary on a clean Windows x64 machine and `agent-mail describe` runs from any working directory.
 - [ ] **AC11**: After a subsequent release and WinGet publish run, `winget upgrade JuanjoFuchs.agent-mail-cli` does not leave duplicate entries; `winget list agent-mail-cli` returns exactly one row.
 
 ### Storage
 
-- [ ] **AC12**: First invocation of the packaged command creates `~/.agent-mail/mail.db` with the schema documented in spec 001 TC9.
-- [ ] **AC13**: `AGENT_MAIL_DB=<path> agent-mail ...` directs all reads and writes to `<path>`; `~/.agent-mail/mail.db` is not created or modified.
+- [x] **AC12**: First invocation of the packaged command creates `~/.agent-mail/mail.db` with the schema documented in spec 001 TC9.
+- [x] **AC13**: `AGENT_MAIL_DB=<path> agent-mail ...` directs all reads and writes to `<path>`; `~/.agent-mail/mail.db` is not created or modified.
 
 ### Versioning and trusted publishing
 
