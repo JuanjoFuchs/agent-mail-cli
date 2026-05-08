@@ -52,6 +52,7 @@ jobs:
           $sha256 = (Get-FileHash -Algorithm SHA256 agent-mail.exe).Hash
 
           @(
+            "# yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.$manifestVersion.schema.json",
             "PackageIdentifier: $packageId",
             "PackageVersion: $version",
             "DefaultLocale: en-US",
@@ -60,6 +61,7 @@ jobs:
           ) | Set-Content (Join-Path $manifestDir "$packageId.yaml")
 
           @(
+            "# yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.$manifestVersion.schema.json",
             "PackageIdentifier: $packageId",
             "PackageVersion: $version",
             "PackageLocale: en-US",
@@ -81,6 +83,7 @@ jobs:
           ) | Set-Content (Join-Path $manifestDir "$packageId.locale.en-US.yaml")
 
           @(
+            "# yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.$manifestVersion.schema.json",
             "PackageIdentifier: $packageId",
             "PackageVersion: $version",
             "InstallerType: portable",
