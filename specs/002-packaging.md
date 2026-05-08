@@ -214,7 +214,9 @@ ccburn (`D:/jfuchs/dev/ccburn`) is the working precedent for PyPI, GitHub Releas
 - [x] WinGet PR opened: `microsoft/winget-pkgs#371963`.
 - [x] Submitted WinGet installer manifest contains `UpgradeBehavior: uninstallPrevious`.
 - [x] Release workflow token fallback removed for OIDC-only PyPI publish attempt.
+- [x] OIDC-only `v0.1.2` release attempt failed before upload with PyPI `invalid-pending-publisher: valid token, but project already exists`.
 - [ ] PyPI publisher active state confirmed in the PyPI web UI.
+- [ ] Normal Trusted Publisher added under the existing `agent-mail-cli` project in the PyPI web UI.
 - [x] Token-based PyPI fallback removed from release workflow.
 - [ ] Clean macOS `pip` or `pipx` install verified from PyPI.
 - [ ] Clean Windows `pip` or `pipx` install verified from PyPI.
