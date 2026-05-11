@@ -27,7 +27,7 @@
     "postinstall": "node scripts/postinstall.js"
   },
   "files": [
-    "bin/",
+    "bin/agent-mail.js",
     "scripts/",
     "README.md",
     "LICENSE"
