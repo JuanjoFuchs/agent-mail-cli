@@ -123,7 +123,7 @@ Server-side projection on `read` and `status`. The agent specifies `--fields id,
 
 #### CLI-only in v1 — no MCP server
 
-MCP setup is the friction this tool removes. `agent-mail describe` (and later `npx -y agent-mail describe`) is the wedge: immediate JSON schema without MCP setup. Adding an MCP surface in v1 would put us in the same complexity tier as the systems we're differentiating against. Reconsider in a future spec if there is real demand from clients without easy shell-out.
+MCP setup is the friction this tool removes. `agent-mail describe` and `npx -y @juanjofuchs/agent-mail describe` are the wedge: immediate JSON schema without MCP setup. Adding an MCP surface in v1 would put us in the same complexity tier as the systems we're differentiating against. Reconsider in a future spec if there is real demand from clients without easy shell-out.
 
 #### No `--json` payload input
 

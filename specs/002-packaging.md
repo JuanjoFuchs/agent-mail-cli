@@ -12,7 +12,7 @@ blocks: ["003"]
 
 Package the audited Agent Mail CLI behavior from spec 001 as a Python distribution on PyPI, platform binaries on GitHub Releases, and a WinGet package for Windows users. npm distribution is intentionally separate and is covered by spec 003.
 
-The PyPI distribution name is `agent-mail-cli` because PyPI rejected `agent-mail` as too similar to an existing project. The installed command remains `agent-mail`, preserving the product wedge and the future `npx -y agent-mail describe` path.
+The PyPI distribution name is `agent-mail-cli` because PyPI rejected `agent-mail` as too similar to an existing project. The installed command remains `agent-mail`, preserving the product wedge and the npm `npx -y @juanjofuchs/agent-mail describe` path.
 
 > **Completion rule:** This spec is not complete until all acceptance criteria are verified through the testing approach below, including real installs from real publish channels: `pipx install agent-mail-cli` on a clean machine and `winget install JuanjoFuchs.agent-mail-cli` on a clean Windows machine after Microsoft approval. Build-only and CI-only verification are insufficient. The agent must iterate until verification passes.
 

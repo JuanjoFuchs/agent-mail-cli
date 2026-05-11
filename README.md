@@ -1,5 +1,17 @@
 # Agent Mail CLI
 
+[![CI](https://img.shields.io/github/actions/workflow/status/JuanjoFuchs/agent-mail-cli/ci.yml?branch=main&label=CI)](https://github.com/JuanjoFuchs/agent-mail-cli/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/JuanjoFuchs/agent-mail-cli/release.yml?label=Release)](https://github.com/JuanjoFuchs/agent-mail-cli/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/%40juanjofuchs%2Fagent-mail)](https://www.npmjs.com/package/@juanjofuchs/agent-mail)
+[![PyPI](https://img.shields.io/pypi/v/agent-mail-cli)](https://pypi.org/project/agent-mail-cli/)
+[![Python](https://img.shields.io/pypi/pyversions/agent-mail-cli)](https://pypi.org/project/agent-mail-cli/)
+[![GitHub Release](https://img.shields.io/github/v/release/JuanjoFuchs/agent-mail-cli)](https://github.com/JuanjoFuchs/agent-mail-cli/releases)
+[![WinGet](https://img.shields.io/badge/WinGet-pending%20review-yellow)](https://github.com/microsoft/winget-pkgs/pull/371963)
+[![npm downloads](https://img.shields.io/npm/dt/%40juanjofuchs%2Fagent-mail?label=npm%20downloads)](https://www.npmjs.com/package/@juanjofuchs/agent-mail)
+[![PyPI downloads](https://img.shields.io/pepy/dt/agent-mail-cli?label=pypi%20downloads)](https://pepy.tech/project/agent-mail-cli)
+[![GitHub downloads](https://img.shields.io/github/downloads/JuanjoFuchs/agent-mail-cli/total?label=github%20downloads)](https://github.com/JuanjoFuchs/agent-mail-cli/releases)
+[![License](https://img.shields.io/github/license/JuanjoFuchs/agent-mail-cli)](LICENSE)
+
 A self-describing local inbox for coding agents.
 
 ```bash
@@ -29,25 +41,32 @@ Agent Mail CLI is aimed at the simpler moment:
 > handoff to that agent. I want one command that teaches both sides the
 > mailbox.
 
-## Intended Usage
+## Installation
 
-The primary experience is one command:
+### npx
 
-Sender:
-
-```bash
-npx -y @juanjofuchs/agent-mail describe
-npx -y @juanjofuchs/agent-mail send --from second-brain:main --to ccburn:worker --subject "Review spec" --body "Please read the referenced spec and report risks."
-```
-
-Recipient:
+The primary experience is one command. The npm package name is scoped because
+npm rejected the unscoped `agent-mail` and `agent-mail-cli` names; the installed
+command remains `agent-mail`.
 
 ```bash
 npx -y @juanjofuchs/agent-mail describe
-npx -y @juanjofuchs/agent-mail read ccburn:worker
 ```
 
-Python users can install the package:
+### npm
+
+```bash
+npm install -g @juanjofuchs/agent-mail
+agent-mail describe
+```
+
+The npm package also exposes `agent-mail-cli` as an alias for compatibility:
+
+```bash
+agent-mail-cli describe
+```
+
+### pipx
 
 ```bash
 pipx install agent-mail-cli
@@ -64,6 +83,29 @@ From source:
 
 ```bash
 python -m agent_mail describe
+```
+
+### WinGet
+
+WinGet support has been submitted and is waiting on Microsoft's package review.
+After approval:
+
+```powershell
+winget install JuanjoFuchs.agent-mail-cli
+```
+
+## Intended Usage
+
+Sender:
+
+```bash
+npx -y @juanjofuchs/agent-mail send --from second-brain:main --to ccburn:worker --subject "Review spec" --body "Please read the referenced spec and report risks."
+```
+
+Recipient:
+
+```bash
+npx -y @juanjofuchs/agent-mail read ccburn:worker
 ```
 
 ## Design Goals
@@ -122,10 +164,11 @@ python -m agent_mail describe
 
 - Product: Agent Mail CLI
 - Repo: `agent-mail-cli`
-- Target npm package / command: `agent-mail`
+- npm package: `@juanjofuchs/agent-mail`
 - Python distribution: `agent-mail-cli`
 - Python import package: `agent_mail`
 - Command: `agent-mail`
+- Command alias from npm: `agent-mail-cli`
 
 ## License
 
