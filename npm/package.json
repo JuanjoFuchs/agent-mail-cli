@@ -21,7 +21,7 @@
     "coding-agents"
   ],
   "bin": {
-    "agent-mail": "./bin/agent-mail.js"
+    "agent-mail": "bin/agent-mail.js"
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.js"
