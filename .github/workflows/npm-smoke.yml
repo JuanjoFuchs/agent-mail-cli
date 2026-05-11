@@ -1,0 +1,37 @@
+name: npm Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "npm package spec to test"
+        required: true
+        default: "@juanjofuchs/agent-mail@latest"
+
+jobs:
+  npx-smoke:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "16"
+
+      - name: Verify npx package
+        env:
+          AGENT_MAIL_DB: ${{ runner.temp }}/agent-mail-smoke.db
+        run: npx -y "${{ github.event.inputs.package }}" describe

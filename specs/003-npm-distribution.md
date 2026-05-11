@@ -52,14 +52,14 @@ These must be done before the publish workflow can succeed.
 
 ### npm account and trusted publisher
 
-- [ ] npm account exists at https://www.npmjs.com.
+- [x] npm account exists at https://www.npmjs.com.
 - [x] Verify the unscoped package name cannot be used: `npm publish agent-mail@0.1.3` was rejected as too similar to existing package `agentmail`.
-- [ ] Bootstrap-publish the first npm version if npm requires the package to exist before Trusted Publishing can be configured.
-- [ ] Configure npm Trusted Publishing for package `@juanjofuchs/agent-mail`:
+- [x] Bootstrap-publish the first npm version if npm requires the package to exist before Trusted Publishing can be configured.
+- [x] Configure npm Trusted Publishing for package `@juanjofuchs/agent-mail`:
   - Owner: `JuanjoFuchs`
   - Repository: `agent-mail-cli`
   - Workflow: `npm-publish.yml`
-- [ ] Confirm no long-lived `NPM_TOKEN` repository secret is required for steady-state publishing.
+- [x] Confirm no long-lived `NPM_TOKEN` repository secret is required for steady-state publishing.
 
 ## Key Decisions
 
@@ -130,8 +130,9 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 - [x] `tests/test_parity.py` passes comparing module, PyInstaller binary, and npm wrapper when both local binary paths are available.
 - [x] `AGENT_MAIL_RUNNER=npm pytest tests/test_cli_behavior.py` passes against the npm wrapper when it points at a local compatible PyInstaller binary.
 - [x] `node npm/scripts/postinstall.js` downloads the live `v0.1.3` Linux release binary, and `node npm/bin/agent-mail.js describe` runs on this host.
-- [ ] npm Trusted Publishing configured on npmjs.com for `.github/workflows/npm-publish.yml`.
-- [ ] npm package published and verified with `npm view @juanjofuchs/agent-mail@<version> version`.
+- [x] npm Trusted Publishing configured on npmjs.com for `.github/workflows/npm-publish.yml` via `npm trust github`.
+- [x] Bootstrap npm package published and verified with `npm view @juanjofuchs/agent-mail@0.1.3 version`.
+- [ ] Steady-state npm publish verified from GitHub Actions via Trusted Publishing.
 
 ### Publish workflow
 
@@ -140,6 +141,7 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
   - `working-directory: npm`.
   - The version-bump step uses `npm version <release-tag-version> --no-git-tag-version`.
   - Publishing uses npm OIDC Trusted Publishing with `--provenance` and no `NODE_AUTH_TOKEN`.
+- [x] Create `.github/workflows/npm-smoke.yml` to verify the published package on clean GitHub-hosted Windows x64, Linux x64, macOS x64, and macOS arm64 runners.
 
 ### Documentation sweep
 
