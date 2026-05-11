@@ -14,6 +14,10 @@
 
 A self-describing local inbox for coding agents.
 
+<p align="center">
+  <video src="docs/agent-mail-hero.mp4" controls muted playsinline title="Agent Mail CLI demo"></video>
+</p>
+
 ```bash
 npx -y @juanjofuchs/agent-mail describe
 ```
