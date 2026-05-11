@@ -3,7 +3,7 @@
 A self-describing local inbox for coding agents.
 
 ```bash
-npx -y agent-mail-cli describe
+npx -y @juanjofuchs/agent-mail describe
 ```
 
 That command is the product wedge: an agent can run it, read the JSON schema,
@@ -36,15 +36,15 @@ The primary experience is one command:
 Sender:
 
 ```bash
-npx -y agent-mail-cli describe
-npx -y agent-mail-cli send --from second-brain:main --to ccburn:worker --subject "Review spec" --body "Please read the referenced spec and report risks."
+npx -y @juanjofuchs/agent-mail describe
+npx -y @juanjofuchs/agent-mail send --from second-brain:main --to ccburn:worker --subject "Review spec" --body "Please read the referenced spec and report risks."
 ```
 
 Recipient:
 
 ```bash
-npx -y agent-mail-cli describe
-npx -y agent-mail-cli read ccburn:worker
+npx -y @juanjofuchs/agent-mail describe
+npx -y @juanjofuchs/agent-mail read ccburn:worker
 ```
 
 Python users can install the package:

@@ -1,5 +1,5 @@
 {
-  "name": "agent-mail-cli",
+  "name": "@juanjofuchs/agent-mail",
   "version": "0.1.4",
   "description": "Self-describing local inbox for coding agents",
   "author": "JuanjoFuchs",
