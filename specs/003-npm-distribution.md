@@ -10,13 +10,13 @@ blocks: []
 
 ## Overview
 
-Distribute Agent Mail through npm so users without Python — primarily Node-ecosystem coding-agent users — can run `npx -y agent-mail` and get the same tool. The npm package is a thin Node wrapper that downloads the platform binary built in spec 002 and invokes it. Pattern is taken wholesale from ccburn (`D:/jfuchs/dev/ccburn/npm/`).
+Distribute Agent Mail through npm so users without Python — primarily Node-ecosystem coding-agent users — can run `npx -y @juanjofuchs/agent-mail` and get the same tool. The npm package is a thin Node wrapper that downloads the platform binary built in spec 002 and invokes it. Pattern is taken wholesale from ccburn (`D:/jfuchs/dev/ccburn/npm/`).
 
-> **Completion rule:** This spec is not complete until `npx -y agent-mail describe` works on a clean machine for each supported platform — Windows x64, Linux x64, macOS x64, and macOS arm64 — with only Node 16+ installed and zero Python. CI-only verification is insufficient.
+> **Completion rule:** This spec is not complete until `npx -y @juanjofuchs/agent-mail describe` works on a clean machine for each supported platform — Windows x64, Linux x64, macOS x64, and macOS arm64 — with only Node 16+ installed and zero Python. CI-only verification is insufficient.
 
 ## Goals
 
-- `npx -y agent-mail describe` works first-try on a fresh machine with Node 16+.
+- `npx -y @juanjofuchs/agent-mail describe` works first-try on a fresh machine with Node 16+.
 - npm package version is always identical to the GitHub Release version it depends on (no human edits two files).
 - A user on an unsupported platform gets a clear `pipx install agent-mail-cli` fallback hint, not a cryptic error.
 
@@ -24,8 +24,8 @@ Distribute Agent Mail through npm so users without Python — primarily Node-eco
 
 ### Functional Requirements
 
-- **FR1**: `npx -y agent-mail describe` runs on Windows x64, Linux x64, macOS x64, and macOS arm64 with Node 16+ installed.
-- **FR2**: `npm install -g agent-mail` followed by `agent-mail describe` works (the binary is downloaded during install and added to the npm bin directory).
+- **FR1**: `npx -y @juanjofuchs/agent-mail describe` runs on Windows x64, Linux x64, macOS x64, and macOS arm64 with Node 16+ installed.
+- **FR2**: `npm install -g @juanjofuchs/agent-mail` followed by `agent-mail describe` works (the binary is downloaded during install and added to the npm bin directory).
 - **FR3**: The npm `postinstall` step downloads the platform-matching binary from the GitHub Release whose tag matches the npm package version, and saves it next to the bin wrapper.
 - **FR4**: The bin wrapper spawns the downloaded binary with all CLI arguments forwarded verbatim, inherits stdio, and propagates the binary's exit code.
 - **FR5**: On unsupported platforms, the postinstall script exits non-zero with a JSON-style error that hints at `pipx install agent-mail-cli` as a fallback.
@@ -39,7 +39,7 @@ Distribute Agent Mail through npm so users without Python — primarily Node-eco
 
 ### Technical Constraints
 
-- **TC1**: npm package name is `agent-mail` (same as PyPI name and CLI command).
+- **TC1**: npm package name is `@juanjofuchs/agent-mail`. The command name remains `agent-mail`.
 - **TC2**: `engines.node` is `>=16.0.0`.
 - **TC3**: `os` whitelist: `darwin`, `linux`, `win32`. `cpu` whitelist: `x64`, `arm64`. `linux-arm64` is reachable by these whitelists but is not a supported binary in v1; the postinstall script handles that case explicitly.
 - **TC4**: The postinstall script is pure Node (no shell scripts, no PowerShell, no Python) so it works identically on every platform.
@@ -53,9 +53,9 @@ These must be done before the publish workflow can succeed.
 ### npm account and trusted publisher
 
 - [ ] npm account exists at https://www.npmjs.com.
-- [x] Verify the package name is available: `npm view agent-mail` should 404.
+- [x] Verify the unscoped package name cannot be used: `npm publish agent-mail@0.1.3` was rejected as too similar to existing package `agentmail`.
 - [ ] Bootstrap-publish the first npm version if npm requires the package to exist before Trusted Publishing can be configured.
-- [ ] Configure npm Trusted Publishing for package `agent-mail`:
+- [ ] Configure npm Trusted Publishing for package `@juanjofuchs/agent-mail`:
   - Owner: `JuanjoFuchs`
   - Repository: `agent-mail-cli`
   - Workflow: `npm-publish.yml`
@@ -81,7 +81,11 @@ If the user is on an unsupported platform (e.g. Linux arm64), postinstall errors
 
 ### First npm publish may be a bootstrap exception
 
-npm Trusted Publishing is configured from package settings. If npm does not expose settings until the package exists, the first `agent-mail` publish may be done from a developer machine using interactive npm login. That exception exists only to create the package. After the package exists, Trusted Publishing is configured and future publishes go through GitHub Actions.
+npm Trusted Publishing is configured from package settings. If npm does not expose settings until the package exists, the first npm publish may be done from a developer machine using interactive npm login. That exception exists only to create the package. After the package exists, Trusted Publishing is configured and future publishes go through GitHub Actions.
+
+### Scoped npm package, unscoped command
+
+npm rejected the unscoped `agent-mail` package name because it is too similar to existing package `agentmail`. The package is therefore published as `@juanjofuchs/agent-mail`, while the executable it installs remains `agent-mail`.
 
 ### Reference ccburn instead of inlining files
 
@@ -91,7 +95,7 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 
 ```text
 ┌───────────────────────┐    ┌──────────────────┐    ┌──────────────────────┐
-│ npx -y agent-mail     │───▶│ postinstall.js   │───▶│ GitHub Releases      │
+│ npx -y @juanjofuchs/… │───▶│ postinstall.js   │───▶│ GitHub Releases      │
 │ npm install -g …      │    │ detect platform  │    │ download binary      │
 └───────────────────────┘    └──────────────────┘    └──────────────────────┘
                                        │
@@ -113,11 +117,11 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
   - `npm/README.md` — install/usage examples for `agent-mail`.
   - `npm/.npmignore` — same structure as ccburn's.
 - [x] Verify locally: `cd npm && npm pack` produces a valid tarball. Inspect the tarball contents (`tar -tzf agent-mail-*.tgz`) to confirm only `bin/`, `scripts/`, `README.md`, and `LICENSE` are included.
-- [ ] Verify the downloaded Linux release binary runs on the target Linux baseline. `v0.1.2` failed on Ubuntu 22.04-era glibc with `GLIBC_2.38 not found`, so the Linux release runner must use `ubuntu-22.04` or older before npm Linux verification can pass.
+- [x] Verify the downloaded Linux release binary runs on the target Linux baseline. `v0.1.2` failed on Ubuntu 22.04-era glibc with `GLIBC_2.38 not found`; `v0.1.3` rebuilt Linux on `ubuntu-22.04` and runs through the npm wrapper.
 
 ## Verification Record
 
-- [x] `npm view agent-mail version` returns 404, so the npm package name is currently available.
+- [x] `npm publish agent-mail@0.1.3` was rejected by npm name similarity policy, so the package moved to `@juanjofuchs/agent-mail`.
 - [x] `npm pack` succeeds with a tarball containing only `LICENSE`, `README.md`, `bin/agent-mail.js`, `scripts/postinstall.js`, and `package.json`.
 - [x] `node --check npm/bin/agent-mail.js` passes.
 - [x] `node --check npm/scripts/postinstall.js` passes.
@@ -125,9 +129,9 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 - [x] `node npm/bin/agent-mail.js describe` works when the wrapper points at a local compatible PyInstaller binary.
 - [x] `tests/test_parity.py` passes comparing module, PyInstaller binary, and npm wrapper when both local binary paths are available.
 - [x] `AGENT_MAIL_RUNNER=npm pytest tests/test_cli_behavior.py` passes against the npm wrapper when it points at a local compatible PyInstaller binary.
-- [ ] `node npm/scripts/postinstall.js` downloads a live Linux release binary that runs on this host. Blocked until the next release is built with the `ubuntu-22.04` Linux runner.
+- [x] `node npm/scripts/postinstall.js` downloads the live `v0.1.3` Linux release binary, and `node npm/bin/agent-mail.js describe` runs on this host.
 - [ ] npm Trusted Publishing configured on npmjs.com for `.github/workflows/npm-publish.yml`.
-- [ ] npm package published and verified with `npm view agent-mail@<version> version`.
+- [ ] npm package published and verified with `npm view @juanjofuchs/agent-mail@<version> version`.
 
 ### Publish workflow
 
@@ -139,23 +143,23 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 
 ### Documentation sweep
 
-- [x] Update `README.md` install section to lead with `npx -y agent-mail describe` (the spec 001 product wedge), with `pipx install agent-mail-cli` as the secondary path for users who prefer Python tooling.
+- [x] Update `README.md` install section to lead with `npx -y @juanjofuchs/agent-mail describe` (the spec 001 product wedge), with `pipx install agent-mail-cli` as the secondary path for users who prefer Python tooling.
 
 ## Acceptance Criteria
 
 ### Publishing
 
-- [ ] **AC1**: After a successful GitHub Release that includes all four platform binaries, `npm-publish.yml` succeeds and `npm view agent-mail@<version> version` returns the published version.
+- [ ] **AC1**: After a successful GitHub Release that includes all four platform binaries, `npm-publish.yml` succeeds and `npm view @juanjofuchs/agent-mail@<version> version` returns the published version.
 - [ ] **AC2**: If any of the four platform binaries is missing from the GitHub Release, `npm-publish.yml` fails before calling `npm publish` (verified by removing one binary from a test release and observing the failure mode).
-- [ ] **AC3**: `npm/package.json`'s version after the publish workflow runs equals the GitHub Release tag (verified by inspecting the published tarball with `npm view agent-mail@<version>`).
+- [ ] **AC3**: `npm/package.json`'s version after the publish workflow runs equals the GitHub Release tag (verified by inspecting the published tarball with `npm view @juanjofuchs/agent-mail@<version>`).
 
 ### Install on supported platforms
 
-- [ ] **AC4**: `npx -y agent-mail describe` works on a clean Windows x64 machine with Node 16+ and zero Python.
-- [ ] **AC5**: `npx -y agent-mail describe` works on a clean Linux x64 machine with Node 16+ and zero Python.
-- [ ] **AC6**: `npx -y agent-mail describe` works on a clean macOS x64 machine with Node 16+ and zero Python.
-- [ ] **AC7**: `npx -y agent-mail describe` works on a clean macOS arm64 machine with Node 16+ and zero Python.
-- [ ] **AC8**: `npm install -g agent-mail && agent-mail describe` works (binary lands in the npm bin directory and is on PATH).
+- [ ] **AC4**: `npx -y @juanjofuchs/agent-mail describe` works on a clean Windows x64 machine with Node 16+ and zero Python.
+- [ ] **AC5**: `npx -y @juanjofuchs/agent-mail describe` works on a clean Linux x64 machine with Node 16+ and zero Python.
+- [ ] **AC6**: `npx -y @juanjofuchs/agent-mail describe` works on a clean macOS x64 machine with Node 16+ and zero Python.
+- [ ] **AC7**: `npx -y @juanjofuchs/agent-mail describe` works on a clean macOS arm64 machine with Node 16+ and zero Python.
+- [ ] **AC8**: `npm install -g @juanjofuchs/agent-mail && agent-mail describe` works (binary lands in the npm bin directory and is on PATH).
 
 ### Unsupported platforms
 
@@ -163,7 +167,7 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 
 ### Parity
 
-- [ ] **AC10**: All spec 001 acceptance criteria (AC1–AC46) pass when the test runner targets `npx -y agent-mail` instead of the source script.
+- [ ] **AC10**: All spec 001 acceptance criteria (AC1–AC46) pass when the test runner targets `npx -y @juanjofuchs/agent-mail` instead of the source script.
 - [x] **AC11**: `tests/test_parity.py` (introduced in spec 002) is extended to compare three call sites for each command — imported source, PyInstaller binary directly, and the npm-wrapped invocation — and asserts identical stdout JSON and exit codes across all three.
 
 ## Testing Approach
@@ -184,14 +188,14 @@ A successful local run confirms the wrapper logic before any tag is pushed.
 For each supported platform — Windows x64, Linux x64, macOS x64, macOS arm64 — provision a fresh environment with Node 16+ and zero Python. Run:
 
 ```bash
-npx -y agent-mail describe
+npx -y @juanjofuchs/agent-mail describe
 ```
 
 Expected: documented JSON schema on stdout, exit 0. Record the version of Node and the npm version that resolved.
 
 ### Unsupported-platform manual test
 
-On a Linux arm64 host (or under QEMU), run `npm install -g agent-mail` and verify postinstall exits non-zero with the documented fallback hint.
+On a Linux arm64 host (or under QEMU), run `npm install -g @juanjofuchs/agent-mail` and verify postinstall exits non-zero with the documented fallback hint.
 
 ## Out of Scope
 
