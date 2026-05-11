@@ -51,7 +51,7 @@ The PyPI distribution name is `agent-mail-cli` because PyPI rejected `agent-mail
   | Platform | Architecture | Runner | Binary suffix |
   |---|---|---|---|
   | Windows | x64 | `windows-latest` | `windows-x64.exe` |
-  | Linux | x64 | `ubuntu-latest` | `linux-x64` |
+  | Linux | x64 | `ubuntu-22.04` | `linux-x64` |
   | macOS | x64 | `macos-15-intel` | `darwin-x64` |
   | macOS | arm64 | `macos-latest` | `darwin-arm64` |
 

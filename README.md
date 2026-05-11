@@ -15,8 +15,7 @@ setup, a daemon, or separate documentation.
 This repository is the open-source extraction of a working internal tool.
 `src/agent_mail/cli.py` is the Python implementation and source of truth for
 behavior. Spec 001 is the behavioral specification. Spec 002 covers Python
-packaging, GitHub Release binaries, and WinGet. Spec 003 will cover npm and
-`npx`.
+packaging, GitHub Release binaries, and WinGet. Spec 003 covers npm and `npx`.
 
 ## Why
 
@@ -32,7 +31,7 @@ Agent Mail CLI is aimed at the simpler moment:
 
 ## Intended Usage
 
-Once npm distribution lands (spec 003), the target experience is one command:
+The primary experience is one command:
 
 Sender:
 
@@ -91,6 +90,14 @@ python -m agent_mail describe
 ├── README.md
 ├── docs/
 │   └── landscape.md
+├── npm/
+│   ├── bin/
+│   │   └── agent-mail.js
+│   ├── scripts/
+│   │   └── postinstall.js
+│   ├── LICENSE
+│   ├── README.md
+│   └── package.json
 ├── specs/
 │   ├── 001-agent-mail-cli.md
 │   ├── 002-packaging.md

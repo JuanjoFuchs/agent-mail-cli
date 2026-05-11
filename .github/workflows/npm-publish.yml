@@ -1,0 +1,74 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.2"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Verify npm version
+        run: |
+          npm --version
+
+      - name: Get version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify GitHub Release assets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const expected = [
+              `agent-mail-${version}-darwin-arm64`,
+              `agent-mail-${version}-darwin-x64`,
+              `agent-mail-${version}-linux-x64`,
+              `agent-mail-${version}-windows-x64.exe`
+            ];
+
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: `v${version}`
+            });
+
+            const assetNames = new Set(release.data.assets.map((asset) => asset.name));
+            const missing = expected.filter((name) => !assetNames.has(name));
+            if (missing.length > 0) {
+              core.setFailed(`Missing release assets: ${missing.join(', ')}`);
+            }
+
+      - name: Update package.json version
+        working-directory: npm
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Publish to npm
+        working-directory: npm
+        run: npm publish --access public --provenance

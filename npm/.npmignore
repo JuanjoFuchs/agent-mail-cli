@@ -1,0 +1,26 @@
+# Source files
+*.ts
+tsconfig.json
+
+# Development
+.github/
+tests/
+specs/
+docs/
+
+# Build artifacts
+*.tsbuildinfo
+*.tgz
+bin/agent-mail-*
+!bin/agent-mail.js
+
+# Environment
+.env*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

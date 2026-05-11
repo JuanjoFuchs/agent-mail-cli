@@ -59,6 +59,18 @@ def run_cli(db_path):
         elif runner == "command":
             command = os.environ.get("AGENT_MAIL_COMMAND", "agent-mail")
             cmd = [command, *args]
+        elif runner == "npm":
+            wrapper = Path(
+                os.environ.get(
+                    "AGENT_MAIL_NPM_WRAPPER",
+                    Path(__file__).resolve().parents[1] / "npm" / "bin" / "agent-mail.js",
+                )
+            )
+            if not wrapper.exists():
+                pytest.skip("npm wrapper is not available")
+            if not any(wrapper.parent.glob("agent-mail-*")):
+                pytest.skip("npm-downloaded agent-mail binary is not available")
+            cmd = ["node", str(wrapper), *args]
         else:
             raise ValueError(f"unknown runner: {runner}")
 

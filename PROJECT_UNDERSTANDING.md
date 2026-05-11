@@ -8,7 +8,7 @@ Agent Mail CLI is a self-describing local inbox for coding agents. Its core prom
 npx -y agent-mail describe
 ```
 
-The tool already exists and works. It was built and used as `mail.py` inside JJ's private second-brain vault before this repo. This repo is the open-source extraction of that tool: the Python source now lives in `src/agent_mail/cli.py`, spec 001 is the behavioral contract, spec 002 covers Python packaging, GitHub Release binaries, and WinGet, and spec 003 will cover npm/`npx`.
+The tool already exists and works. It was built and used as `mail.py` inside JJ's private second-brain vault before this repo. This repo is the open-source extraction of that tool: the Python source now lives in `src/agent_mail/cli.py`, spec 001 is the behavioral contract, spec 002 covers Python packaging, GitHub Release binaries, and WinGet, and spec 003 covers npm/`npx`.
 
 ## Problem
 
@@ -28,7 +28,7 @@ Agent Mail CLI competes on **low ceremony and runtime discoverability**, not cat
 | Repository | `agent-mail-cli` |
 | Source of truth for behavior | `src/agent_mail/cli.py` (Python) |
 | First command | `agent-mail describe` |
-| First distribution paths | `pipx install agent-mail-cli`, `pipx run --spec agent-mail-cli agent-mail`, and later `npx -y agent-mail` |
+| First distribution paths | `npx -y agent-mail`, `pipx install agent-mail-cli`, and `pipx run --spec agent-mail-cli agent-mail` |
 | Persistence | SQLite |
 | Default DB path | `~/.agent-mail/mail.db` |
 | Override env var | `AGENT_MAIL_DB` (the only override path; one-shot use as `AGENT_MAIL_DB=path agent-mail …`) |
@@ -100,7 +100,7 @@ The repo work proceeds in deliberate steps:
 3. **Audit.** ✅ Done (commit `be7a8c8`). Removed `--ttl`, top-level `--db`, and `--human`. Added `--body-file`, `--fields`, and UUID validation. Recorded twelve audit decisions in spec 001's Key Decisions section.
 4. **Spec 002 — packaging.** ✅ Drafted. PyPI + GitHub Releases binaries + WinGet, modeled on ccburn. Default DB path changes to `~/.agent-mail/mail.db`. Captures two ccburn gotchas: PyPI first-deploy needs an API token before Trusted Publishing kicks in, and WinGet manifests need explicit `UpgradeBehavior: uninstallPrevious` injection to avoid leaving duplicate versions on upgrade.
 5. **Spec 003 — npm distribution.** ✅ Drafted. Thin Node wrapper that downloads the binary built in spec 002. Enables `npx -y agent-mail` for users without Python.
-6. **Implement specs 002 and 003.** ⏳ Spec 002 in progress; spec 003 pending. Build, ship, dogfood. Replace JJ's daily use of `python scripts/mail.py` with the packaged version (`pipx install agent-mail-cli` or later `npx -y agent-mail`).
+6. **Implement specs 002 and 003.** ⏳ Spec 002 has PyPI/GitHub Release verification complete and is waiting on external WinGet approval. Spec 003 is in progress; the npm wrapper is implemented locally and publishing is waiting on npm Trusted Publishing plus a Linux binary rebuilt with an older glibc baseline. Replace JJ's daily use of `python scripts/mail.py` with the packaged version (`pipx install agent-mail-cli` or `npx -y agent-mail`).
 7. **Delete the upstream.** ⏳ Pending. Once JJ is satisfied with the packaged tool, the original `scripts/mail.py` in the second-brain vault is removed; this repo becomes the only home.
 
 ## Scope
@@ -139,10 +139,11 @@ The active behavioral scope is described in [`specs/001-agent-mail-cli.md`](spec
 | `specs/001-agent-mail-cli.md` | Behavioral specification (audited) |
 | `specs/002-packaging.md` | Packaging spec — PyPI + GitHub Releases + WinGet |
 | `specs/003-npm-distribution.md` | npm wrapper + `npx` distribution spec |
+| `npm/` | Node wrapper package for `npx -y agent-mail` |
 | `src/agent_mail/cli.py` | Python implementation and console command entry |
 | `pyproject.toml` | Python package metadata for `agent-mail-cli` |
 
-Python packaging, CI, release, and WinGet workflows are owned by spec 002. The npm wrapper remains spec 003.
+Python packaging, CI, release, and WinGet workflows are owned by spec 002. The npm wrapper and npm publish workflow are owned by spec 003.
 
 ## Origin
 

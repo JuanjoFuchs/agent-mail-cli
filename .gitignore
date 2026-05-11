@@ -15,6 +15,7 @@ build/
 # Node / npm wrapper
 node_modules/
 npm/bin/agent-mail-*
+npm/*.tgz
 
 # Local mailbox state
 *.db

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Agent Mail CLI is the open-source extraction of a working agent-to-agent inbox. `src/agent_mail/cli.py` is the source of truth for behavior. Spec 001 is the behavioral contract; spec 002 covers Python packaging, GitHub Releases binaries, and WinGet.
+Agent Mail CLI is the open-source extraction of a working agent-to-agent inbox. `src/agent_mail/cli.py` is the source of truth for behavior. Spec 001 is the behavioral contract; spec 002 covers Python packaging, GitHub Releases binaries, and WinGet; spec 003 covers npm and `npx`.
 
 **CRITICAL: You MUST read the required files BEFORE taking action.** This is not optional.
 
@@ -49,5 +49,6 @@ Single Python script today. Spec is the contract; script is the implementation.
 - `src/agent_mail/cli.py` is the working Python source, packaged as `agent_mail`.
 - Spec 001 is the behavioral contract for `src/agent_mail/cli.py`. Status: pending.
 - Spec 001 audit complete (commit `be7a8c8`). `--ttl`, top-level `--db`, and `--human` removed; `--body-file`, `--fields`, and UUID validation added.
-- Spec 002 (PyPI + GitHub Releases + WinGet, modeled on ccburn) is being implemented. Spec 003 (npm + `npx`) remains pending. The repo has a remote (`origin → JuanjoFuchs/agent-mail-cli`); `main` is pushed.
+- Spec 002 (PyPI + GitHub Releases + WinGet, modeled on ccburn) has PyPI/GitHub Release verification complete; WinGet remains in Microsoft's review queue.
+- Spec 003 (npm + `npx`, modeled on ccburn's npm wrapper) is in progress. The npm wrapper is implemented locally; publishing requires npm Trusted Publishing setup and a Linux binary rebuilt on an older glibc baseline.
 - Strategic command center: `💼 Agent Mailbox.md` in JJ's private vault.
