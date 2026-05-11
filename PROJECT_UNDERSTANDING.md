@@ -5,7 +5,7 @@
 Agent Mail CLI is a self-describing local inbox for coding agents. Its core promise: an agent can run one command, learn the tool from structured JSON, and coordinate with other agents without MCP setup, a daemon, or a prior install.
 
 ```bash
-npx -y @juanjofuchs/agent-mail describe
+npx -y agent-mail-cli describe
 ```
 
 The tool already exists and works. It was built and used as `mail.py` inside JJ's private second-brain vault before this repo. This repo is the open-source extraction of that tool: the Python source now lives in `src/agent_mail/cli.py`, spec 001 is the behavioral contract, spec 002 covers Python packaging, GitHub Release binaries, and WinGet, and spec 003 covers npm/`npx`.
@@ -28,7 +28,7 @@ Agent Mail CLI competes on **low ceremony and runtime discoverability**, not cat
 | Repository | `agent-mail-cli` |
 | Source of truth for behavior | `src/agent_mail/cli.py` (Python) |
 | First command | `agent-mail describe` |
-| First distribution paths | `npx -y @juanjofuchs/agent-mail`, `pipx install agent-mail-cli`, and `pipx run --spec agent-mail-cli agent-mail` |
+| First distribution paths | `npx -y agent-mail-cli`, `pipx install agent-mail-cli`, and `pipx run --spec agent-mail-cli agent-mail` |
 | Persistence | SQLite |
 | Default DB path | `~/.agent-mail/mail.db` |
 | Override env var | `AGENT_MAIL_DB` (the only override path; one-shot use as `AGENT_MAIL_DB=path agent-mail …`) |
@@ -42,14 +42,14 @@ The first users are developers already running coding agents (Claude Code, Codex
 Sender:
 
 ```text
-Run `npx -y @juanjofuchs/agent-mail describe`. Your identity is `second-brain:main`.
+Run `npx -y agent-mail-cli describe`. Your identity is `second-brain:main`.
 Send a message to `ccburn:worker` with this context.
 ```
 
 Receiver:
 
 ```text
-Run `npx -y @juanjofuchs/agent-mail describe`. Your identity is `ccburn:worker`.
+Run `npx -y agent-mail-cli describe`. Your identity is `ccburn:worker`.
 Check your inbox and act on any unread messages.
 ```
 
@@ -99,8 +99,8 @@ The repo work proceeds in deliberate steps:
 2. **Copy the script.** ✅ Done. The script was ported and then restructured into `src/agent_mail/` per spec 002.
 3. **Audit.** ✅ Done (commit `be7a8c8`). Removed `--ttl`, top-level `--db`, and `--human`. Added `--body-file`, `--fields`, and UUID validation. Recorded twelve audit decisions in spec 001's Key Decisions section.
 4. **Spec 002 — packaging.** ✅ Drafted. PyPI + GitHub Releases binaries + WinGet, modeled on ccburn. Default DB path changes to `~/.agent-mail/mail.db`. Captures two ccburn gotchas: PyPI first-deploy needs an API token before Trusted Publishing kicks in, and WinGet manifests need explicit `UpgradeBehavior: uninstallPrevious` injection to avoid leaving duplicate versions on upgrade.
-5. **Spec 003 — npm distribution.** ✅ Drafted. Thin Node wrapper that downloads the binary built in spec 002. Enables `npx -y @juanjofuchs/agent-mail` for users without Python.
-6. **Implement specs 002 and 003.** ⏳ Spec 002 has PyPI/GitHub Release verification complete and is waiting on external WinGet approval. Spec 003 is in progress; npm publishes as `@juanjofuchs/agent-mail` because npm rejected unscoped `agent-mail`, and Trusted Publishing is configured for steady-state releases. Replace JJ's daily use of `python scripts/mail.py` with the packaged version (`pipx install agent-mail-cli` or `npx -y @juanjofuchs/agent-mail`).
+5. **Spec 003 — npm distribution.** ✅ Drafted. Thin Node wrapper that downloads the binary built in spec 002. Enables `npx -y agent-mail-cli` for users without Python.
+6. **Implement specs 002 and 003.** ⏳ Spec 002 has PyPI/GitHub Release verification complete and is waiting on external WinGet approval. Spec 003 is in progress; npm rejected unscoped `agent-mail`, and `agent-mail-cli` is the current unscoped npm package attempt. Replace JJ's daily use of `python scripts/mail.py` with the packaged version (`pipx install agent-mail-cli` or `npx -y agent-mail-cli`).
 7. **Delete the upstream.** ⏳ Pending. Once JJ is satisfied with the packaged tool, the original `scripts/mail.py` in the second-brain vault is removed; this repo becomes the only home.
 
 ## Scope
@@ -139,7 +139,7 @@ The active behavioral scope is described in [`specs/001-agent-mail-cli.md`](spec
 | `specs/001-agent-mail-cli.md` | Behavioral specification (audited) |
 | `specs/002-packaging.md` | Packaging spec — PyPI + GitHub Releases + WinGet |
 | `specs/003-npm-distribution.md` | npm wrapper + `npx` distribution spec |
-| `npm/` | Node wrapper package for `npx -y @juanjofuchs/agent-mail` |
+| `npm/` | Node wrapper package for `npx -y agent-mail-cli` |
 | `src/agent_mail/cli.py` | Python implementation and console command entry |
 | `pyproject.toml` | Python package metadata for `agent-mail-cli` |
 

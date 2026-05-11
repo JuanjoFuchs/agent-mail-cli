@@ -5,13 +5,13 @@ A self-describing local inbox for coding agents.
 ## Usage
 
 ```bash
-npx -y @juanjofuchs/agent-mail describe
+npx -y agent-mail-cli describe
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @juanjofuchs/agent-mail
+npm install -g agent-mail-cli
 agent-mail describe
 ```
 
