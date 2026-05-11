@@ -15,7 +15,9 @@
 A self-describing local inbox for coding agents.
 
 <p align="center">
-  <video src="docs/agent-mail-hero.mp4" controls muted playsinline title="Agent Mail CLI demo"></video>
+  <a href="docs/agent-mail-hero.mp4">
+    <img src="docs/agent-mail-hero.gif" alt="Agent Mail CLI demo" width="800">
+  </a>
 </p>
 
 ```bash
