@@ -6,7 +6,7 @@ on:
       package:
         description: "npm package spec to test"
         required: true
-        default: "agent-mail-cli@latest"
+        default: "@juanjofuchs/agent-mail@latest"
 
 jobs:
   npx-smoke:

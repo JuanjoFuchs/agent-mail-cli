@@ -50,5 +50,5 @@ Single Python script today. Spec is the contract; script is the implementation.
 - Spec 001 is the behavioral contract for `src/agent_mail/cli.py`. Status: pending.
 - Spec 001 audit complete (commit `be7a8c8`). `--ttl`, top-level `--db`, and `--human` removed; `--body-file`, `--fields`, and UUID validation added.
 - Spec 002 (PyPI + GitHub Releases + WinGet, modeled on ccburn) has PyPI/GitHub Release verification complete; WinGet remains in Microsoft's review queue.
-- Spec 003 (npm + `npx`, modeled on ccburn's npm wrapper) is in progress. npm rejected unscoped `agent-mail`; `agent-mail-cli` was also rejected by npm. The installed command remains `agent-mail`; `v0.1.4` is the verification release.
+- Spec 003 (npm + `npx`, modeled on ccburn's npm wrapper) has live scoped npm publishing verified for `@juanjofuchs/agent-mail@0.1.4`. npm rejected unscoped `agent-mail`; `agent-mail-cli` was also rejected by npm. The installed command remains `agent-mail`.
 - Strategic command center: `💼 Agent Mailbox.md` in JJ's private vault.

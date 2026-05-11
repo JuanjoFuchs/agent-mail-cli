@@ -133,9 +133,12 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 - [x] `AGENT_MAIL_RUNNER=npm pytest tests/test_cli_behavior.py` passes against the npm wrapper when it points at a local compatible PyInstaller binary.
 - [x] `node npm/scripts/postinstall.js` downloads the live `v0.1.3` Linux release binary, and `node npm/bin/agent-mail.js describe` runs on this host.
 - [x] Scoped fallback package `@juanjofuchs/agent-mail@0.1.3` was bootstrap-published and verified.
-- [ ] npm package `@juanjofuchs/agent-mail@0.1.4` published and verified with `npm view @juanjofuchs/agent-mail@0.1.4 version`.
+- [x] npm package `@juanjofuchs/agent-mail@0.1.4` published and verified with `npm view @juanjofuchs/agent-mail@0.1.4 version`.
 - [x] npm Trusted Publishing configured on npmjs.com for `@juanjofuchs/agent-mail` and `.github/workflows/npm-publish.yml` via `npm trust github`.
-- [ ] Steady-state npm publish verified from GitHub Actions via Trusted Publishing.
+- [x] Steady-state npm publish verified from GitHub Actions via Trusted Publishing.
+- [x] `npx -y @juanjofuchs/agent-mail@0.1.4 describe` works from this host against the live npm package.
+- [x] `npm install -g @juanjofuchs/agent-mail@0.1.4` into a temp prefix exposes both `agent-mail` and `agent-mail-cli` bin aliases.
+- [x] Cross-platform `npm-smoke.yml` run `25692789016` verifies `npx -y @juanjofuchs/agent-mail@0.1.4 describe` on Node 16 across Windows x64, Linux x64, macOS x64, and macOS arm64.
 
 ### Publish workflow
 
@@ -154,17 +157,17 @@ The wrapper layout (`npm/{package.json,bin/<name>.js,scripts/postinstall.js,READ
 
 ### Publishing
 
-- [ ] **AC1**: After a successful GitHub Release that includes all four platform binaries, `npm-publish.yml` succeeds and `npm view @juanjofuchs/agent-mail@<version> version` returns the published version.
+- [x] **AC1**: After a successful GitHub Release that includes all four platform binaries, `npm-publish.yml` succeeds and `npm view @juanjofuchs/agent-mail@<version> version` returns the published version.
 - [ ] **AC2**: If any of the four platform binaries is missing from the GitHub Release, `npm-publish.yml` fails before calling `npm publish` (verified by removing one binary from a test release and observing the failure mode).
-- [ ] **AC3**: `npm/package.json`'s version after the publish workflow runs equals the GitHub Release tag (verified by inspecting the published tarball with `npm view @juanjofuchs/agent-mail@<version>`).
+- [x] **AC3**: `npm/package.json`'s version after the publish workflow runs equals the GitHub Release tag (verified by inspecting the published tarball with `npm view @juanjofuchs/agent-mail@<version>`).
 
 ### Install on supported platforms
 
-- [ ] **AC4**: `npx -y @juanjofuchs/agent-mail describe` works on a clean Windows x64 machine with Node 16+ and zero Python.
-- [ ] **AC5**: `npx -y @juanjofuchs/agent-mail describe` works on a clean Linux x64 machine with Node 16+ and zero Python.
-- [ ] **AC6**: `npx -y @juanjofuchs/agent-mail describe` works on a clean macOS x64 machine with Node 16+ and zero Python.
-- [ ] **AC7**: `npx -y @juanjofuchs/agent-mail describe` works on a clean macOS arm64 machine with Node 16+ and zero Python.
-- [ ] **AC8**: `npm install -g @juanjofuchs/agent-mail && agent-mail describe` works (binary lands in the npm bin directory and is on PATH).
+- [x] **AC4**: `npx -y @juanjofuchs/agent-mail describe` works on a clean Windows x64 machine with Node 16+ and zero Python.
+- [x] **AC5**: `npx -y @juanjofuchs/agent-mail describe` works on a clean Linux x64 machine with Node 16+ and zero Python.
+- [x] **AC6**: `npx -y @juanjofuchs/agent-mail describe` works on a clean macOS x64 machine with Node 16+ and zero Python.
+- [x] **AC7**: `npx -y @juanjofuchs/agent-mail describe` works on a clean macOS arm64 machine with Node 16+ and zero Python.
+- [x] **AC8**: `npm install -g @juanjofuchs/agent-mail && agent-mail describe` works (binary lands in the npm bin directory and is on PATH).
 
 ### Unsupported platforms
 
