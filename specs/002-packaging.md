@@ -87,7 +87,7 @@ These must be completed before the implementation can publish successfully. GitH
 
 ### PyPI account, name reservation, and first-release token
 
-> **Known gotcha from ccburn:** PyPI's pending-publisher flow may fail for a first upload. The reliable path is to use a one-time API token for the first release, verify the pending publisher activates, then remove token-based publishing.
+> **Known gotcha from ccburn:** PyPI's pending-publisher flow may fail for a first upload. The reliable path used here was a one-time API token for the first release, then a normal Trusted Publisher on the existing PyPI project for steady-state OIDC publishing. A pending publisher does not activate after a token-created project already exists.
 
 - [x] PyPI account exists at https://pypi.org.
 - [x] Project name `agent-mail-cli` reserved on PyPI via Pending Trusted Publisher.
@@ -98,10 +98,10 @@ These must be completed before the implementation can publish successfully. GitH
   - Environment: `release`
 - [x] PyPI API token generated and stored locally in `.env` as `PYPI_API_TOKEN`.
 - [x] Push `PYPI_API_TOKEN` to the repository secret for the first release only.
-- [ ] After the first release succeeds and `https://pypi.org/project/agent-mail-cli/` is live:
-  - [ ] Confirm the PyPI publisher is active, not pending.
+- [x] After the first release succeeds and `https://pypi.org/project/agent-mail-cli/` is live:
+  - [x] Add a normal Trusted Publisher to the existing PyPI project.
   - [x] Remove the token fallback from the release workflow.
-  - [ ] Delete the `PYPI_API_TOKEN` repository secret.
+  - [x] Delete the `PYPI_API_TOKEN` repository secret.
 
 ### GitHub repository setup
 
@@ -129,7 +129,7 @@ PyPI rejected `agent-mail`, so the PyPI distribution is `agent-mail-cli`. The co
 
 ### First PyPI deploy uses a temporary token
 
-A Pending Trusted Publisher is configured before release, but the first upload uses `PYPI_API_TOKEN` because ccburn hit first-upload failures with pending publishers. After the first upload, the publisher must be verified as active, token-based publishing removed from the workflow, and the secret deleted.
+A Pending Trusted Publisher is configured before release, but the first upload uses `PYPI_API_TOKEN` because ccburn hit first-upload failures with pending publishers. Because the token upload creates the project, the pending publisher remains pending and cannot publish future releases. Steady-state publishing uses a normal Trusted Publisher configured under the existing `agent-mail-cli` PyPI project. Token-based publishing is removed from the workflow and the repository secret is deleted after an OIDC release succeeds.
 
 ### WinGet upgrade behavior is explicit
 
@@ -193,7 +193,7 @@ ccburn (`D:/jfuchs/dev/ccburn`) is the working precedent for PyPI, GitHub Releas
 - [x] Set the first release version to `0.1.1` after `v0.1.0` published to PyPI but did not complete the GitHub Release.
 - [x] Push tag `v0.1.1` after JJ approves the implementation.
 - [x] Verify GitHub Release artifacts, PyPI publication, and clean-machine `pipx` install.
-- [ ] Complete the PyPI Trusted Publishing cleanup described in the prerequisites.
+- [x] Complete the PyPI Trusted Publishing cleanup described in the prerequisites.
 - [x] Trigger the initial WinGet submission and verify the Microsoft PR opens.
 - [ ] Monitor the Microsoft PR until approval or rejection.
 
@@ -215,9 +215,14 @@ ccburn (`D:/jfuchs/dev/ccburn`) is the working precedent for PyPI, GitHub Releas
 - [x] Submitted WinGet installer manifest contains `UpgradeBehavior: uninstallPrevious`.
 - [x] Release workflow token fallback removed for OIDC-only PyPI publish attempt.
 - [x] OIDC-only `v0.1.2` release attempt failed before upload with PyPI `invalid-pending-publisher: valid token, but project already exists`.
-- [ ] PyPI publisher active state confirmed in the PyPI web UI.
-- [ ] Normal Trusted Publisher added under the existing `agent-mail-cli` project in the PyPI web UI.
+- [x] Normal Trusted Publisher added under the existing `agent-mail-cli` project in the PyPI web UI.
+- [x] OIDC-only `v0.1.2` release rerun succeeded through PyPI Trusted Publishing.
+- [x] PyPI `agent-mail-cli==0.1.2` is live.
+- [x] GitHub Release `v0.1.2` exists with wheel, sdist, and four platform binaries.
+- [x] Live `pipx run --spec agent-mail-cli==0.1.2 agent-mail describe` verification passed.
 - [x] Token-based PyPI fallback removed from release workflow.
+- [x] `PYPI_API_TOKEN` repository secret deleted; `gh secret list` shows only `WINGET_TOKEN`.
+- [x] WinGet publish workflow was triggered by `v0.1.2`; it failed as expected because the initial WinGet PR is not approved yet.
 - [ ] Clean macOS `pip` or `pipx` install verified from PyPI.
 - [ ] Clean Windows `pip` or `pipx` install verified from PyPI.
 - [ ] `winget install JuanjoFuchs.agent-mail-cli` verified after Microsoft approval.
@@ -256,8 +261,8 @@ ccburn (`D:/jfuchs/dev/ccburn`) is the working precedent for PyPI, GitHub Releas
 ### Versioning and trusted publishing
 
 - [ ] **AC14**: Pushing tag `vX.Y.Z` with a value that differs from the package metadata version fails the release workflow before artifact creation.
-- [ ] **AC15**: The first release publishes to PyPI using `PYPI_API_TOKEN`; after upload, `https://pypi.org/project/agent-mail-cli/` is live and PyPI shows the publisher promoted from pending to active.
-- [ ] **AC16**: After `PYPI_API_TOKEN` is removed and token-based workflow configuration is deleted, the next release publishes through OIDC without a password field in the PyPI publish step.
+- [x] **AC15**: The first successful PyPI release publishes using `PYPI_API_TOKEN` and `https://pypi.org/project/agent-mail-cli/` is live. The pending publisher is not promoted because the project was created by token upload; steady-state publishing moves to a normal Trusted Publisher on the existing project.
+- [x] **AC16**: After `PYPI_API_TOKEN` is removed and token-based workflow configuration is deleted, the next release publishes through OIDC without a password field in the PyPI publish step.
 
 ## Testing Approach
 
